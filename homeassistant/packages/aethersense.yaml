@@ -1,0 +1,75 @@
+# Copie este arquivo para a pasta packages do Home Assistant.
+# Ajuste o resource para o IP/hostname do container se necessário.
+
+rest:
+  - resource: http://aethersense-backend:8000/api/detection
+    scan_interval: 2
+    timeout: 5
+    binary_sensor:
+      - name: AetherSense Occupancy
+        unique_id: aethersense_occupancy
+        device_class: occupancy
+        value_template: "{{ value_json.presence.detected | default(false) }}"
+    sensor:
+      - name: AetherSense Presence Confidence
+        unique_id: aethersense_presence_confidence
+        value_template: "{{ value_json.presence.confidence | round(2) }}"
+        unit_of_measurement: "%"
+        state_class: measurement
+      - name: AetherSense Floor
+        unique_id: aethersense_floor
+        value_template: "{{ value_json.location.floor }}"
+        icon: mdi:floor-plan
+      - name: AetherSense Accuracy
+        unique_id: aethersense_accuracy_m
+        value_template: "{{ value_json.location.accuracy_m | round(1) }}"
+        unit_of_measurement: m
+        device_class: distance
+        state_class: measurement
+
+automation:
+  - alias: AetherSense - ligar luz quando houver ocupação
+    id: aethersense_liga_luz_occupancy
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.aethersense_occupancy
+        to: "on"
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.aethersense_accuracy
+        below: 8
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: light.sala
+
+  - alias: AetherSense - desligar luz quando o ambiente ficar vazio
+    id: aethersense_desliga_luz_absence
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.aethersense_occupancy
+        to: "off"
+        for: "00:03:00"
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: light.sala
+
+  - alias: AetherSense - ar condicionado por ocupação
+    id: aethersense_climate_on_occupancy
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.aethersense_occupancy
+        to: "on"
+    condition:
+      - condition: template
+        value_template: "{{ states('sensor.aethersense_floor') | int(-1) == 0 }}"
+    action:
+      - service: climate.set_hvac_mode
+        target:
+          entity_id: climate.ar_condicionado
+        data:
+          hvac_mode: cool

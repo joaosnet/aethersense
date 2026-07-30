@@ -1,0 +1,50 @@
+services:
+  backend:
+    build:
+      context: ./aethersense-server
+      dockerfile: Dockerfile.dev
+    container_name: aethersense-backend-dev
+    environment:
+      - AETHERSENSE_HOST=0.0.0.0
+      - AETHERSENSE_PORT=8000
+      - AETHERSENSE_UDP_PORT=5005
+      - AETHERSENSE_REPLAY_DIR=/app/tests/captures
+      - RUST_LOG=info
+    ports:
+      - "8000:8000"
+      # UDP em 5006 no host: o ESP32 envia em BROADCAST, que o Docker Desktop
+      # (Windows) não entrega ao container. O relay nativo (tools/dev_udp_relay.py)
+      # escuta o broadcast em :5005 e reinjeta unicast em 127.0.0.1:5006 -> container.
+      # Use scripts/dev-up.ps1 para subir relay + containers juntos.
+      - "5006:5005/udp"
+    volumes:
+      # Monta o diretório do servidor localmente para o live reload
+      - ./aethersense-server:/app
+      # Esconde a pasta target do host para não conflitar as builds Windows vs Linux
+      - backend_target:/app/target
+      - cargo_registry:/usr/local/cargo/registry
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    environment:
+      - VITE_PROXY_TARGET=http://backend:8000
+      - VITE_PROXY_WS_TARGET=ws://backend:8000
+    container_name: aethersense-frontend-dev
+    ports:
+      - "3000:3000" # Vite vai rodar na 3000 por padrão
+    volumes:
+      # Monta o diretório do frontend
+      - ./frontend:/app
+      # Ignora o node_modules local do host para evitar problemas Windows vs Linux
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  backend_target:
+  cargo_registry:

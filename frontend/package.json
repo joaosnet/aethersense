@@ -1,0 +1,46 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "healthcheck": "node scripts/dashboard-healthcheck.mjs --api-only",
+    "smoke:dashboard": "node scripts/dashboard-healthcheck.mjs",
+    "smoke:dashboard:live": "node scripts/dashboard-healthcheck.mjs --require-live"
+  },
+  "dependencies": {
+    "@types/leaflet.heat": "^0.2.5",
+    "i18next": "^26.3.4",
+    "leaflet": "^1.9.4",
+    "leaflet.heat": "^0.2.0",
+    "lucide-react": "^1.7.0",
+    "plotly.js-dist-min": "^3.5.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-grid-layout": "^2.2.3",
+    "react-i18next": "^17.0.8",
+    "react-leaflet": "^5.0.0",
+    "react-plotly.js": "^2.6.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/leaflet": "^1.9.21",
+    "@types/node": "^24.12.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-grid-layout": "^1.3.6",
+    "@types/react-plotly.js": "^2.6.4",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.0",
+    "vite": "^8.0.4"
+  }
+}

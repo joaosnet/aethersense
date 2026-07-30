@@ -1,0 +1,13 @@
+[target.xtensa-esp32-espidf]
+linker = "ldproxy"
+runner = "espflash flash --monitor"
+
+[target.riscv32imac-esp-espidf]
+linker = "ldproxy"
+runner = "espflash flash --monitor --chip esp32c5"
+
+[build]
+target = "xtensa-esp32-espidf"
+
+[unstable]
+build-std = ["std", "panic_abort"]

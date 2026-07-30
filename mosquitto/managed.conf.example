@@ -1,0 +1,9 @@
+# Modelo usado pela TUI para o modo "broker local gerenciado".
+# O arquivo efetivo é escrito em runtime/managed.conf e não é versionado.
+listener 1883
+allow_anonymous false
+password_file /mosquitto/security/passwords
+acl_file /mosquitto/security/acl
+persistence true
+persistence_location /mosquitto/data/
+log_dest stdout

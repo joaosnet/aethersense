@@ -1,0 +1,169 @@
+<svg class="aether-svg" style="--c-main: #004b87; --c-accent: #f36622; --c-light: #92b2d6; --c-cut: #ffffff; --c-text: #111111; --tx-human: 12px; --ty-human: 32px; --s-human: 1; --tx-heart: -20px; --ty-heart: -18px; --s-heart: 0.45; --tx-wifi: -4px; --ty-wifi: -6px; --s-wifi: 1; --tx-nodes-l: 1px; --ty-nodes-l: -36px; --s-nodes-l: 1; --tx-nodes-r: 0px; --ty-nodes-r: 0px; --s-nodes-r: 1; --tx-hex-wire: 0px; --ty-hex-wire: 0px; --s-hex-wire: 1; --tx-hex-main: 0px; --ty-hex-main: 0px; --s-hex-main: 1; --tx-sun: -43px; --ty-sun: -50px; --s-sun: 0.3;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" width="100%" height="100%">
+                            <defs><style>
+            .hex-wireframe { fill: none; stroke: var(--c-light); stroke-width: 2.5; stroke-linejoin: round; }
+            .hex-main { fill: none; stroke: var(--c-main); stroke-width: 8; stroke-linejoin: round; }
+            .wifi-arc { fill: none; stroke: var(--c-main); stroke-width: 14; stroke-linecap: round; }
+            .heartbeat-line { fill: none; stroke: var(--c-accent); stroke-width: 6; stroke-linejoin: round; stroke-linecap: round; }
+            .heartbeat-cut { fill: none; stroke: var(--c-cut); stroke-width: 12; stroke-linejoin: round; stroke-linecap: round; }
+            .node-edge { fill: none; stroke: var(--c-main); stroke-width: 1.5; }
+            .node-edge-cut { fill: none; stroke: var(--c-cut); stroke-width: 5; }
+            .fill-main { fill: var(--c-main); }
+            .fill-accent { fill: var(--c-accent); }
+            .invisible-hit, .scale-handle { display: none; }
+
+            .pos-hex-wire { transform: translate(var(--tx-hex-wire), var(--ty-hex-wire)) scale(var(--s-hex-wire)); transform-box: fill-box; transform-origin: center; }
+            .pos-hex-main { transform: translate(var(--tx-hex-main), var(--ty-hex-main)) scale(var(--s-hex-main)); transform-box: fill-box; transform-origin: center; }
+            .pos-sun { transform: translate(var(--tx-sun), var(--ty-sun)) scale(var(--s-sun)); transform-box: fill-box; transform-origin: center; }
+            .pos-human { transform: translate(var(--tx-human), var(--ty-human)) scale(var(--s-human)); transform-box: fill-box; transform-origin: center; }
+            .pos-heart { transform: translate(var(--tx-heart), var(--ty-heart)) scale(var(--s-heart)); transform-box: fill-box; transform-origin: center; }
+            .pos-wifi { transform: translate(var(--tx-wifi), var(--ty-wifi)) scale(var(--s-wifi)); transform-box: fill-box; transform-origin: center; }
+            .pos-nodes-l { transform: translate(var(--tx-nodes-l), var(--ty-nodes-l)) scale(var(--s-nodes-l)); transform-box: fill-box; transform-origin: center; }
+            .pos-nodes-r { transform: translate(var(--tx-nodes-r), var(--ty-nodes-r)) scale(var(--s-nodes-r)); transform-box: fill-box; transform-origin: center; }
+        </style></defs>
+
+                        <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&amp;display=swap');
+                            .title-text { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 56px; fill: var(--c-main); text-anchor: middle; letter-spacing: -1.2px; }
+                            .title-wifi { fill: none; stroke: var(--c-accent); stroke-linecap: round; }
+                            .subtitle-text { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 12.5px; fill: var(--c-text); text-anchor: middle; letter-spacing: 0.15px; }
+
+                            @keyframes drawHeartbeat { 0% { stroke-dashoffset: 800; } 50% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 0; } }
+                            .anim-heartbeat { stroke-dasharray: 800; animation: drawHeartbeat 4s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+                            @keyframes wifiPulse { 0%, 100% { opacity: 0.3; transform: scale(0.97); } 50% { opacity: 1; transform: scale(1.02); stroke: var(--c-accent); } }
+                            .anim-wifi-1 { animation: wifiPulse 2.5s infinite ease-in-out; transform-origin: center; }
+                            .anim-wifi-2 { animation: wifiPulse 2.5s infinite ease-in-out 0.3s; transform-origin: center; }
+                            .anim-wifi-3 { animation: wifiPulse 2.5s infinite ease-in-out 0.6s; transform-origin: center; }
+                            @keyframes nodeBlink { 0%, 100% { fill: var(--c-main); transform: scale(1); } 50% { fill: var(--c-accent); transform: scale(1.3); } }
+                            .anim-node { animation: nodeBlink 2s infinite alternate; transform-origin: center; transform-box: fill-box; }
+                            .anim-node-d1 { animation-delay: 0.5s; }
+                            .anim-node-d2 { animation-delay: 1s; }
+                            @keyframes floatHuman { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-4px); } }
+                            .anim-human-group { animation: floatHuman 3s infinite ease-in-out; }
+                        </style>
+                        <g transform="translate(130, 155) scale(0.68)">
+            <!-- 8. CAIXA 3D (Wireframe) -->
+            <g class="draggable pos-hex-wire" data-var-x="tx-hex-wire" data-var-y="ty-hex-wire" data-var-s="s-hex-wire">
+                <g class="invisible-hit" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="0,-115 100,-58 100,58 0,115 -100,58 -100,-58"></polygon>
+                    <polygon points="0,-165 142,-82 142,82 0,165 -142,82 -142,-82"></polygon>
+                    <line x1="0" y1="-115" x2="0" y2="-165"></line><line x1="100" y1="-58" x2="142" y2="-82"></line><line x1="100" y1="58" x2="142" y2="82"></line><line x1="0" y1="115" x2="0" y2="165"></line><line x1="-100" y1="58" x2="-142" y2="82"></line><line x1="-100" y1="-58" x2="-142" y2="-82"></line><line x1="-100" y1="58" x2="-20" y2="105"></line><line x1="100" y1="58" x2="20" y2="105"></line><line x1="-40" y1="93" x2="0" y2="115"></line><line x1="40" y1="93" x2="0" y2="115"></line>
+                </g>
+                <g class="hex-wireframe">
+                    <polygon points="0,-115 100,-58 100,58 0,115 -100,58 -100,-58"></polygon>
+                    <polygon points="0,-165 142,-82 142,82 0,165 -142,82 -142,-82"></polygon>
+                    <line x1="0" y1="-115" x2="0" y2="-165"></line><line x1="100" y1="-58" x2="142" y2="-82"></line><line x1="100" y1="58" x2="142" y2="82"></line><line x1="0" y1="115" x2="0" y2="165"></line><line x1="-100" y1="58" x2="-142" y2="82"></line><line x1="-100" y1="-58" x2="-142" y2="-82"></line><line x1="-100" y1="58" x2="-20" y2="105"></line><line x1="100" y1="58" x2="20" y2="105"></line><line x1="-40" y1="93" x2="0" y2="115"></line><line x1="40" y1="93" x2="0" y2="115"></line>
+                </g>
+                <circle class="scale-handle" cx="142" cy="110" r="8"></circle>
+            </g>
+
+            <!-- 7. HEXÁGONO PRINCIPAL ESCURO -->
+            <g class="draggable pos-hex-main" data-var-x="tx-hex-main" data-var-y="ty-hex-main" data-var-s="s-hex-main">
+                <polygon class="invisible-hit" stroke-width="20" stroke-linejoin="round" points="0,-140 121,-70 121,70 0,140 -121,70 -121,-70"></polygon>
+                <polygon class="hex-main" points="0,-140 121,-70 121,70 0,140 -121,70 -121,-70"></polygon>
+                <circle class="scale-handle" cx="121" cy="70" r="8"></circle>
+            </g>
+
+            <!-- 6. SOL / SINAL ORANGE -->
+            <g class="draggable pos-sun" data-var-x="tx-sun" data-var-y="ty-sun" data-var-s="s-sun">
+                <path class="fill-accent" d="M 18,28 A 22 22 0 0 1 62,28 Z"></path>
+                <circle class="scale-handle" cx="62" cy="28" r="8"></circle>
+            </g>
+
+            <!-- 3. ONDAS WIFI -->
+            <g class="draggable pos-wifi" data-var-x="tx-wifi" data-var-y="ty-wifi" data-var-s="s-wifi">
+                <path class="invisible-hit" stroke-width="20" stroke-linecap="round" d="M -85,-30 A 85 85 0 0 1 85,-30 M -52,-30 A 52 52 0 0 1 52,-30 M -18,-30 A 18 18 0 0 1 18,-30"></path>
+                <path class="wifi-arc anim-wifi-3" d="M -85,-30 A 85 85 0 0 1 85,-30"></path>
+                <path class="wifi-arc anim-wifi-2" d="M -52,-30 A 52 52 0 0 1 52,-30"></path>
+                <path class="wifi-arc anim-wifi-1" d="M -18,-30 A 18 18 0 0 1 18,-30"></path>
+                <circle class="scale-handle" cx="85" cy="-30" r="8"></circle>
+            </g>
+
+            <!-- 4. NÓS ESQUERDA -->
+            <g class="draggable pos-nodes-l" data-var-x="tx-nodes-l" data-var-y="ty-nodes-l" data-var-s="s-nodes-l">
+                <path class="invisible-hit" stroke-width="15" d="M -90,55 L -65,80 L -35,65 L -10,95 M -65,80 L -45,110 L -10,95"></path>
+                <path class="node-edge" d="M -90,55 L -65,80 L -35,65 L -10,95 M -65,80 L -45,110 L -10,95"></path>
+                <circle cx="-90" cy="55" r="5" class="fill-accent anim-node"></circle>
+                <circle cx="-65" cy="80" r="7" class="fill-main anim-node-d1"></circle>
+                <circle cx="-35" cy="65" r="4.5" class="fill-main"></circle>
+                <circle cx="-10" cy="95" r="6" class="fill-main anim-node-d2"></circle>
+                <circle cx="-45" cy="110" r="5" class="fill-accent anim-node-d1"></circle>
+                <circle class="scale-handle" cx="-10" cy="95" r="8"></circle>
+            </g>
+
+            <!-- 5. NÓS DIREITA -->
+            <g class="draggable pos-nodes-r" data-var-x="tx-nodes-r" data-var-y="ty-nodes-r" data-var-s="s-nodes-r">
+                <path class="invisible-hit" stroke-width="15" d="M 60,-10 L 90,-40 M 110,0 L 125,25 L 95,55 M 95,85 L 75,60 L 115,25 M 40,5 L 60,-10 L 90,-40 L 110,0 L 90,25 L 60,-10 M 90,-40 L 125,-15 L 110,0 M 90,25 L 125,25 L 95,55 L 75,60 L 50,40 M 95,55 L 115,75 L 95,85 L 75,60"></path>
+                <path class="node-edge-cut" d="M 60,-10 L 90,-40 M 110,0 L 125,25 L 95,55 M 95,85 L 75,60 L 115,25"></path>
+                <path class="node-edge" d="M 40,5 L 60,-10 L 90,-40 L 110,0 L 90,25 L 60,-10 M 90,-40 L 125,-15 L 110,0 M 90,25 L 125,25 L 95,55 L 75,60 L 50,40 M 95,55 L 115,75 L 95,85 L 75,60"></path>
+                <circle cx="60" cy="-10" r="4.5" class="fill-main anim-node"></circle>
+                <circle cx="90" cy="-40" r="6.5" class="fill-accent anim-node-d2"></circle>
+                <circle cx="125" cy="-15" r="4" class="fill-main"></circle>
+                <circle cx="110" cy="0" r="5" class="fill-main anim-node-d1"></circle>
+                <circle cx="90" cy="25" r="7" class="fill-accent"></circle>
+                <circle cx="125" cy="25" r="4.5" class="fill-main anim-node-d2"></circle>
+                <circle cx="95" cy="55" r="5.5" class="fill-main"></circle>
+                <circle cx="115" cy="75" r="4.5" class="fill-accent anim-node-d1"></circle>
+                <circle cx="95" cy="85" r="5.5" class="fill-main"></circle>
+                <circle cx="75" cy="60" r="4.5" class="fill-main anim-node"></circle>
+                <circle class="scale-handle" cx="125" cy="25" r="8"></circle>
+            </g>
+
+            <!-- 2. BATIMENTO CARDÍACO -->
+            <g class="draggable pos-heart" data-var-x="tx-heart" data-var-y="ty-heart" data-var-s="s-heart">
+                <path class="invisible-hit" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" d="M -160,28 L -85,28 L -70,45 L -45,-45 L -15,95 L 15,-15 L 35,28 L 85,28"></path>
+                <path class="heartbeat-cut" d="M -160,28 L -85,28 L -70,45 L -45,-45 L -15,95 L 15,-15 L 35,28 L 85,28"></path>
+                <path class="heartbeat-line anim-heartbeat" d="M -160,28 L -85,28 L -70,45 L -45,-45 L -15,95 L 15,-15 L 35,28 L 85,28"></path>
+                <circle class="scale-handle" cx="85" cy="28" r="8"></circle>
+            </g>
+
+            <!-- 1. CORREDOR HUMANO -->
+            <g class="draggable pos-human" data-var-x="tx-human" data-var-y="ty-human" data-var-s="s-human">
+                <!-- Wrapper que lida com a animação local do elemento -->
+                <g class="anim-human-group">
+                    <!-- Modelo 1: Realista/Sólido -->
+                    <g class="runner-model-1" style="display: block;">
+                        <g fill="none" stroke="var(--c-cut)" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="28" cy="-45" r="8" fill="var(--c-cut)" stroke-width="8"></circle>
+                            <path d="M 25,-25 L 10,-15 L -2,-30" stroke-width="17"></path>
+                            <path d="M 30,5 L 5,30 L -8,25" stroke-width="20"></path>
+                            <path d="M 25,-30 C 32,-25 35,-10 30,5" stroke-width="26"></path>
+                            <path d="M 30,5 L 50,20 L 40,50" stroke-width="21"></path>
+                            <path d="M 28,-25 L 45,-10 L 32,5" stroke-width="17"></path>
+                        </g>
+                        <g fill="none" stroke="var(--c-main)" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="28" cy="-45" r="8" fill="var(--c-main)" stroke="none"></circle>
+                            <path d="M 25,-25 L 10,-15 L -2,-30" stroke-width="9"></path>
+                            <path d="M 30,5 L 5,30 L -8,25" stroke-width="12"></path>
+                            <path d="M 25,-30 C 32,-25 35,-10 30,5" stroke-width="18"></path>
+                            <path d="M 30,5 L 50,20 L 40,50" stroke-width="13"></path>
+                            <path d="M 28,-25 L 45,-10 L 32,5" stroke-width="9"></path>
+                        </g>
+                    </g>
+                    <!-- Modelo 2: Estilizado/Linhas -->
+                    <g class="runner-model-2" style="display: none;">
+                        <g stroke="var(--c-cut)" stroke-width="20" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="28" cy="-45" r="14" fill="var(--c-cut)" stroke="none"></circle>
+                            <path d="M 28,-30 L 22,10"></path> <path d="M 22,10 L 0,30 L -12,25"></path> <path d="M 22,10 L 35,35 L 25,60"></path>
+                            <path d="M 28,-25 L 10,-15 L -5,-30"></path> <path d="M 28,-25 L 45,-10 L 35,10"></path>
+                        </g>
+                        <g fill="none" stroke="var(--c-main)" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M 22,10 L 0,30 L -12,25" stroke-width="14"></path> <path d="M 28,-25 L 10,-15 L -5,-30" stroke-width="10"></path>
+                            <path d="M 28,-30 L 22,10" stroke-width="18"></path> <path d="M 22,10 L 35,35 L 25,60" stroke-width="16"></path>
+                            <path d="M 28,-25 L 45,-10 L 35,10" stroke-width="12"></path> <circle cx="28" cy="-45" r="10" fill="var(--c-main)" stroke="none"></circle>
+                        </g>
+                    </g>
+                </g>
+                <circle class="scale-handle" cx="50" cy="50" r="8"></circle>
+            </g>
+        </g>
+                        <g transform="translate(205, -210)">
+                        <text x="285" y="380" class="title-text">AetherSense</text>
+                        <path class="title-wifi" stroke-width="7" d="M 378, 310 A 32 32 0 0 1 442, 310"></path>
+                        <path class="title-wifi" stroke-width="7" d="M 395, 328 A 15 15 0 0 1 425, 328"></path>
+                        <text x="300" y="425" class="subtitle-text">
+                            <tspan x="300" dy="0">SISTEMA DE PERCEPÇÃO ESPACIAL E MONITORAMENTO</tspan>
+                            <tspan x="300" dy="22">DE SINAIS VITAIS BASEADO EM CSI DE REDES WIFI</tspan>
+                            <tspan x="300" dy="22">SOB A ÓTICA DA COMPUTAÇÃO DE BORDA</tspan>
+                        </text>
+                        </g>
+                        </svg>

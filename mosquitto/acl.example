@@ -1,0 +1,18 @@
+# Backend: publica discovery/comandos e consome telemetria/ACK.
+user aethersense-server
+topic readwrite aethersense/#
+topic readwrite homeassistant/#
+
+# Home Assistant local. A TUI pode omitir este usuário quando o HA usa outro
+# broker e deve gerar uma senha própria quando ele for habilitado.
+user homeassistant
+topic readwrite homeassistant/#
+topic readwrite aethersense/#
+
+# Cada ESP usa o próprio device_id como username. `%u` impede acesso cruzado.
+pattern read aethersense/devices/%u/command
+pattern write aethersense/devices/%u/ack
+pattern write aethersense/devices/%u/event
+pattern write aethersense/devices/%u/state
+pattern write aethersense/devices/%u/capabilities
+pattern write aethersense/devices/%u/availability

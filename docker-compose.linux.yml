@@ -1,0 +1,27 @@
+# Override para hosts LINUX (incl. Home Assistant OS / add-on):
+#   docker compose -f docker-compose.yml -f docker-compose.linux.yml up -d
+#
+# No Linux o Docker suporta network_mode: host de verdade — o UDP broadcast
+# dos ESP32 chega DIRETO ao backend, sem o relay que o Windows exige.
+# O backend escuta :5005 e :8000 na rede do host; o mosquitto continua em
+# bridge com a porta 1883 publicada.
+
+services:
+  backend:
+    network_mode: host
+    ports: []
+    environment:
+      - AETHERSENSE_HOST=0.0.0.0
+      - AETHERSENSE_PORT=8000
+      - AETHERSENSE_UDP_PORT=5005
+      - AETHERSENSE_REPLAY_DIR=/app/tests/captures
+      - AETHERSENSE_MODELS_DIR=/app/models
+      - AETHERSENSE_MQTT_ENABLED=true
+      # Em host network, o broker é alcançado pela porta publicada no host
+      - AETHERSENSE_MQTT_HOST=127.0.0.1
+      - AETHERSENSE_MQTT_PORT=1883
+
+  frontend:
+    # O nginx do frontend faz proxy para o backend pelo host
+    extra_hosts:
+      - "backend:host-gateway"

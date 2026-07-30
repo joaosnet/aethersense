@@ -1,0 +1,55 @@
+{
+  "model_name": "aethersense_occupancy_heatmap",
+  "created_at": "2026-06-12T13:15:14.296143+00:00",
+  "run_id": "20260612_121755_0c499459",
+  "input_name": "csi",
+  "input_shape": [
+    1,
+    1,
+    64,
+    50
+  ],
+  "outputs": [
+    "count_logits",
+    "heatmap"
+  ],
+  "count_classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5+"
+  ],
+  "max_count": 5,
+  "heatmap_size": [
+    20,
+    20
+  ],
+  "location_anchors": {
+    "a": [
+      0.18,
+      0.18
+    ],
+    "b": [
+      0.82,
+      0.18
+    ],
+    "c": [
+      0.5,
+      0.5
+    ],
+    "d": [
+      0.18,
+      0.82
+    ],
+    "e": [
+      0.82,
+      0.82
+    ]
+  },
+  "onnx_opset": 17,
+  "onnx_logit_max_abs_diff": 0.0001049041748046875,
+  "onnx_heatmap_max_abs_diff": 2.6784837245941162e-05,
+  "ethical_constraint": "No local human dataset collection; public datasets plus future empty-room calibration only."
+}

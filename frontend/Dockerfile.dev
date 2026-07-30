@@ -1,0 +1,19 @@
+FROM node:24-slim
+
+WORKDIR /app
+
+# Primeiro instala as dependências
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Script usado pelo HEALTHCHECK e pelos smokes manuais do dashboard.
+COPY scripts ./scripts
+
+EXPOSE 3000
+
+# Executa o Vite. O "--host 0.0.0.0" é essencial para acesso externo fora do container.
+# O polling é usado para garantir o HMR (Hot Module Replacement) caso os eventos do filesystem
+# do Windows não cheguem no Docker Linux (comum no Docker for Windows sem WSL2 nativo perfeito).
+HEALTHCHECK --interval=30s --timeout=8s --start-period=20s --retries=3 CMD ["node", "scripts/dashboard-healthcheck.mjs", "--api-only", "--base-url", "http://127.0.0.1:3000"]
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]

@@ -1,0 +1,163 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Directory metadata
+.directory
+
+# Temporary files
+*~
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Log files
+*.log
+
+# Build artifacts and directories
+**/build/
+build/
+*.o
+*.a
+*.out
+*.exe # For any host-side utilities compiled on Windows
+
+# ESP-IDF specific build outputs
+*.bin
+*.elf
+*.map
+flasher_args.json # Generated in build directory
+sdkconfig.old
+sdkconfig
+
+# ESP-IDF dependencies
+# For older versions or manual component management
+/components/.idf/
+**/components/.idf/
+# For modern ESP-IDF component manager
+managed_components/
+# If ESP-IDF tools are installed/referenced locally to the project
+.espressif/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+
+# Python environment files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.egg-info/
+dist/
+
+# Virtual environment folders
+venv/
+.venv/
+env/
+
+# Language Servers
+.clangd/
+.ccls-cache/
+compile_commands.json
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# User-specific configuration files
+*.user
+*.workspace # General workspace files, can be from various tools
+*.suo       # Visual Studio Solution User Options
+*.sln.docstates # Visual Studio
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Rust
+target/
+Cargo.lock
+!aethersense-server/Cargo.lock
+!firmware-rust/Cargo.lock
+
+datasets/
+AGENTS.md
+docs/🎯 Masterplan TCC - Passaporte para a Gringa.md
+
+# CSI Captures
+aethersense-server/tests/captures/*.csv
+aethersense-server/tests/captures/*.json
+docs/Formulário de Ante-Projeto de  Trabalho de Conclusão de Curso.md
+espflash_ports.toml
+firmware-rust/sdkconfig.defaults
+GEMINI.md
+lx/
+.graphify_detect.json
+.graphify_python
+.graphify_*.json
+.codex/hooks.json
+aethersense-server/graphify-out/*
+firmware-rust/graphify-out/*
+frontend/graphify-out/*
+graphify-out/*
+
+# ML Pipeline artifacts (checkpoints, ONNX models, logs)
+ml/artifacts/
+ml/.venv/
+# NOTE: ml/uv.lock é versionado de propósito — garante ambiente reprodutível
+# no Thunder Compute e em CI. Não adicionar ao .gitignore.
+
+# Saídas de execução local do servidor (logs sem extensão .log)
+aethersense-server/server-live.*
+
+.claude/
+CLAUDE.md
+
+# Configurações e metadados exclusivos de assistentes
+.agents/
+.codex/
+.claude/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+graphify-out/
+**/graphify-out/
+
+# Estado local e dados identificáveis
+aethersense-server/aethersense_config.json
+aethersense-server/tests/captures/*
+!aethersense-server/tests/captures/.gitkeep
+esp_realtime_plot/exports/
+resultados/
+output/
+tmp/
+texput.log
+
+# Credenciais e arquivos de ambiente
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Credenciais/ACL geradas pela TUI para o broker local
+mosquitto/runtime/*
+!mosquitto/runtime/.gitkeep

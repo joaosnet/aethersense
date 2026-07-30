@@ -1,0 +1,72 @@
+#
+# AetherSense Firmware Rust - SDK Configuration (EXEMPLO / CI)
+# Template versionado, SEM segredos. Copie para `sdkconfig` e `sdkconfig.defaults`
+# e preencha SSID/senha se quiser embutir credenciais; do contrario o dispositivo
+# sobe o captive portal "AetherSense-Config" no 1o boot (ver FLASHING.md).
+# O CI (.github/workflows/firmware.yml) usa este arquivo tal como esta.
+
+# UDP Configuration (usado como fallback se as env vars nao forem setadas)
+# O firmware Rust prefere variaveis de ambiente:
+# - AETHERSENSE_UDP_HOST
+# - AETHERSENSE_UDP_PORT
+# - AETHERSENSE_SEND_FREQUENCY_HZ
+
+# Hardware Profile
+# Options: "classic", "esp32c5", "esp32c6"
+# Set via environment variable: AETHERSENSE_HARDWARE_PROFILE
+# Optional Wi-Fi tuning:
+# - AETHERSENSE_WIFI_PREFER_HT40=true|false
+# - AETHERSENSE_WIFI_BAND=auto|2.4ghz|5ghz
+
+# ESP-IDF Base Configuration
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
+CONFIG_FREERTOS_HZ=100
+# The Rust entrypoint owns the typed device profile and the process-wide
+# peripheral resource plan. ESP-IDF's small default app_main stack overflows
+# in the function prologue before the first Rust log line on ESP32-C5.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=32768
+CONFIG_FREERTOS_CHECK_STACKOVERFLOW_CANARY=y
+CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y
+
+# Partition table (app custom de 2 MB — exigido pelo ESP32-C5). Caminho RELATIVO
+# para funcionar em qualquer maquina/CI (partitions.csv esta versionado).
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0x8000
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
+CONFIG_ESPTOOLPY_FLASHMODE="dio"
+CONFIG_ESPTOOLPY_FLASHFREQ_20M=y
+CONFIG_ESPTOOLPY_FLASHFREQ="20m"
+
+# WiFi Configuration
+# ESP-IDF's C5 default is 10 x 1.6 KiB. The previous value 16 reserved an
+# unnecessary extra 9.6 KiB and starved dynamic lwIP/Wi-Fi TX allocations.
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=10
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
+CONFIG_ESP_WIFI_AMPDU_RX_ENABLED=y
+
+# LWIP Configuration
+CONFIG_LWIP_SOCKETS=y
+CONFIG_LWIP_UDP=y
+
+# SDSPI/FAT storage. AetherSense mounts one 512-byte-sector SD volume. Extra
+# VFS slots are required because console, sockets and Rust std I/O register
+# their own backends before the optional SD filesystem is mounted.
+CONFIG_VFS_MAX_COUNT=12
+CONFIG_FATFS_VOLUME_COUNT=1
+CONFIG_FATFS_SECTOR_512=y
+
+# WiFi credentials (VAZIO de proposito — sem segredos no repo/CI; o usuario
+# configura via captive portal. Preencha para embutir uma rede no build).
+CONFIG_EXAMPLE_PROVIDE_WIFI_CONSOLE_CMD=y
+CONFIG_EXAMPLE_WIFI_SSID=
+CONFIG_EXAMPLE_WIFI_PASSWORD=
+CONFIG_EXAMPLE_WIFI_CONN_MAX_RETRY=6
+
+# Enable CSI
+CONFIG_ESP_WIFI_CSI_ENABLED=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_FULL=y

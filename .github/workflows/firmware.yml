@@ -1,0 +1,129 @@
+name: firmware
+
+# Compila o firmware AetherSense para cada placa e publica binários graváveis
+# (imagem única com bootloader + tabela de partições + app). Reproduz o que o
+# firmware-rust/build.py faz localmente, sem trabalho manual recorrente.
+#
+# Gatilhos:
+#   - workflow_dispatch: rodar sob demanda (testar o pipeline numa branch).
+#   - push de tag firmware-v*: compila as 3 placas e anexa os .bin a um Release.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "firmware-v*"
+
+permissions:
+  contents: write # necessário para o softprops/action-gh-release criar o Release
+
+jobs:
+  build:
+    name: build (${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # uma placa quebrada não derruba as outras
+      matrix:
+        include:
+          - profile: classic
+            chip: esp32
+            mcu: esp32
+            target: xtensa-esp32-espidf
+            idf: v5.4.2
+          - profile: esp32c5
+            chip: esp32c5
+            mcu: esp32c5
+            target: riscv32imac-esp-espidf
+            idf: v5.5.1
+          - profile: esp32c6
+            chip: esp32c6
+            mcu: esp32c6
+            target: riscv32imac-esp-espidf
+            idf: v5.4.2
+
+    env:
+      # Replica o ambiente que o build.py monta em apply_profile_environment().
+      MCU: ${{ matrix.mcu }}
+      AETHERSENSE_MCU: ${{ matrix.mcu }}
+      AETHERSENSE_HARDWARE_PROFILE: ${{ matrix.profile }}
+      ESP_IDF_VERSION: ${{ matrix.idf }}
+      ESP_IDF_TOOLS_INSTALL_DIR: global
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Instala o canal Rust "esp" (xtensa + riscv) lido do rust-toolchain.toml,
+      # mais o ldproxy usado como linker em .cargo/config.toml.
+      - name: Install esp Rust toolchain
+        uses: esp-rs/xtensa-toolchain@v1.5
+        with:
+          default: true
+          ldproxy: true
+
+      # Cache do toolchain, registries do cargo, ESP-IDF gerenciado pelo embuild
+      # e artefatos de build. O primeiro run baixa o ESP-IDF (~v5.x); os próximos
+      # reaproveitam.
+      - name: Cache build deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.espressif
+            firmware-rust/.embuild
+            firmware-rust/target
+          key: fw-${{ matrix.profile }}-${{ matrix.idf }}-${{ hashFiles('firmware-rust/Cargo.toml', 'firmware-rust/rust-toolchain.toml') }}
+          restore-keys: |
+            fw-${{ matrix.profile }}-${{ matrix.idf }}-
+            fw-${{ matrix.profile }}-
+
+      - name: Install espflash
+        uses: cargo-bins/cargo-binstall@main
+      - run: cargo binstall -y espflash
+
+      # sdkconfig/sdkconfig.defaults sao gitignored (contem credenciais locais).
+      # O CI usa o template versionado sem segredos: o binario nasce sem Wi-Fi
+      # embutido e o usuario configura via captive portal.
+      - name: Prepare sdkconfig (sem segredos)
+        working-directory: firmware-rust
+        run: |
+          # Caminho ABSOLUTO da partition table: o esp-idf-sys resolve o custom
+          # filename relativo ao seu projeto sintetico (target/.../out), entao um
+          # caminho relativo nao acharia partitions.csv.
+          abs="$GITHUB_WORKSPACE/firmware-rust/partitions.csv"
+          sed "s|\"partitions.csv\"|\"$abs\"|g" sdkconfig.example > sdkconfig
+          cp sdkconfig sdkconfig.defaults
+
+      # Mesmo comando do build.py: build_cargo_build_command().
+      - name: Build firmware
+        working-directory: firmware-rust
+        run: cargo +esp build --target ${{ matrix.target }} --release --features esp-idf
+
+      # Imagem única gravável a partir de 0x0 (bootloader + partition table + app),
+      # respeitando o partitions.csv (app na partição factory em 0x10000).
+      - name: Save merged image
+        working-directory: firmware-rust
+        run: |
+          mkdir -p dist
+          espflash save-image \
+            --chip ${{ matrix.chip }} \
+            --merge \
+            --partition-table partitions.csv \
+            target/${{ matrix.target }}/release/aethersense-firmware-rust \
+            dist/aethersense-${{ matrix.profile }}.bin
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aethersense-${{ matrix.profile }}
+          path: firmware-rust/dist/aethersense-${{ matrix.profile }}.bin
+          if-no-files-found: error
+
+      # Em tag firmware-v*, anexa o .bin desta placa ao Release.
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/firmware-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: firmware-rust/dist/aethersense-${{ matrix.profile }}.bin
+          fail_on_unmatched_files: true

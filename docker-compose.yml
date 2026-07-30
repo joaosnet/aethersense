@@ -1,0 +1,122 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: aethersense-mqtt
+    # Os arquivos gerados pela TUI ficam em NTFS, onde chmod/chown não são
+    # confiáveis. Copie-os para o filesystem Linux do container antes de o
+    # entrypoint oficial reduzir privilégios para o usuário mosquitto.
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        if [ -f /mosquitto-source/passwords ] && [ -f /mosquitto-source/acl ]; then
+          mkdir -p /mosquitto/security
+          cp /mosquitto-source/passwords /mosquitto/security/passwords
+          cp /mosquitto-source/acl /mosquitto/security/acl
+          chown mosquitto:mosquitto /mosquitto/security/passwords /mosquitto/security/acl
+          chmod 0600 /mosquitto/security/passwords /mosquitto/security/acl
+        fi
+        exec /docker-entrypoint.sh /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
+    environment:
+      AETHERSENSE_HEALTHCHECK_USERNAME: ${AETHERSENSE_MQTT_USERNAME:-}
+      AETHERSENSE_HEALTHCHECK_PASSWORD: ${AETHERSENSE_MQTT_PASSWORD:-}
+    ports:
+      # 1883 publicado no host: o Home Assistant (compose separado em
+      # ~/homeassistant) conecta via host.docker.internal:1883
+      - "1883:1883"
+    volumes:
+      # A TUI pode selecionar `mosquitto/runtime/managed.conf` por variável,
+      # mantendo o broker anônimo atual apenas como fallback de compatibilidade.
+      - ${AETHERSENSE_MOSQUITTO_CONFIG:-./mosquitto/mosquitto.conf}:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/runtime:/mosquitto-source:ro
+      - mosquitto-data:/mosquitto/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          if [ -n "$${AETHERSENSE_HEALTHCHECK_USERNAME}" ] &&
+          [ -n "$${AETHERSENSE_HEALTHCHECK_PASSWORD}" ];
+          then mosquitto_pub -h 127.0.0.1 -p 1883
+          -u "$${AETHERSENSE_HEALTHCHECK_USERNAME}"
+          -P "$${AETHERSENSE_HEALTHCHECK_PASSWORD}"
+          -t aethersense/healthcheck/broker -m 1 -q 1;
+          else mosquitto_pub -h 127.0.0.1 -p 1883
+          -t aethersense/healthcheck/broker -m 1 -q 1;
+          fi
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./aethersense-server
+      dockerfile: Dockerfile
+    container_name: aethersense-backend
+    environment:
+      - AETHERSENSE_HOST=0.0.0.0
+      - AETHERSENSE_PORT=8000
+      - AETHERSENSE_UDP_PORT=5005
+      - AETHERSENSE_REPLAY_DIR=/app/tests/captures
+      - AETHERSENSE_MODELS_DIR=/app/models
+      - AETHERSENSE_CONFIG_PATH=/config-host/aethersense_config.json
+      # Sessões de validação/resultados persistidas automaticamente pelo
+      # dashboard (POST /api/results/{categoria}) na pasta resultados/ da raiz
+      - AETHERSENSE_RESULTS_DIR=/app/resultados
+      # MQTT → Home Assistant (discovery automático dos sensores ML)
+      - AETHERSENSE_MQTT_ENABLED=true
+      - AETHERSENSE_MQTT_HOST=mosquitto
+      - AETHERSENSE_MQTT_PORT=1883
+      # A TUI injeta estes segredos somente no ambiente do `docker compose`.
+      # Não usar .env versionado nem gravar valores em arquivos de perfil.
+      - AETHERSENSE_MQTT_USERNAME=${AETHERSENSE_MQTT_USERNAME:-}
+      - AETHERSENSE_MQTT_PASSWORD=${AETHERSENSE_MQTT_PASSWORD:-}
+      - AETHERSENSE_API_TOKEN=${AETHERSENSE_API_TOKEN:-}
+      - RUST_LOG=info
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    ports:
+      # Porta HTTP interna do backend para debug (opcional, o nginx do frontend fará o proxy)
+      - "8000:8000"
+      # UDP em 5006 no host: o ESP32 envia em BROADCAST, que o Docker Desktop
+      # (Windows) NÃO entrega ao container. O relay nativo
+      # (scripts/udp-relay.ps1, auto-iniciado no logon por Tarefa Agendada)
+      # escuta o broadcast em :5005 e reinjeta unicast em 127.0.0.1:5006.
+      # O mesmo relay duplica para :5007 somente como tap de testes, evitando
+      # que `cargo test` dispute a porta de produção com SO_REUSEADDR.
+      # Em Linux/HA com host_network o relay é dispensável (mapear 5005:5005).
+      - "5006:5005/udp"
+    volumes:
+      # Persiste dispositivos, mapa, baseline e settings editados pelo dashboard
+      # O diretório (não só o arquivo) permite substituir o JSON por rename
+      # atômico após sincronizar o arquivo temporário.
+      - ./aethersense-server:/config-host
+      # Disponibiliza capturas locais para o modo replay do dashboard
+      - ./aethersense-server/tests/captures:/app/tests/captures:ro
+      # Pasta de resultados na RAIZ do repo: sessões de validação salvas
+      # automaticamente, categorizadas por tipo/sessão (ver resultados/README.md)
+      - ./resultados:/app/resultados
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aethersense-frontend
+    ports:
+      # Acesso ao Dashboard
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/api/health | grep -q '\"ok\":true'"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  mosquitto-data:

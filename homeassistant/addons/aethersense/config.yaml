@@ -1,0 +1,62 @@
+name: AetherSense
+version: "0.2.0"
+slug: aethersense
+description: AetherSense CSI sensing backend with MQTT discovery for Home Assistant automations.
+url: https://github.com/joaod/aethersense
+arch:
+  - amd64
+  - aarch64
+startup: application
+boot: auto
+stage: experimental
+# host_network é essencial: o ESP32 envia o CSI via UDP BROADCAST (descobre o
+# broadcast da subnet em runtime, sem IP fixo). Com port mapping comum o
+# broadcast não entra no container; com host_network o add-on usa a pilha de
+# rede do host HA (Linux) e recebe o broadcast da LAN diretamente. Isso torna
+# o sistema portátil entre máquinas sem reconfigurar/reflashar o ESP32.
+host_network: true
+services:
+  - mqtt:need
+ports:
+  8000/tcp: 8000
+  5005/udp: 5005
+ports_description:
+  8000/tcp: AetherSense HTTP API and WebSocket endpoint
+  5005/udp: UDP CSI ingest from ESP32 devices (broadcast; requires host_network)
+watchdog: http://[HOST]:[PORT:8000]/api/health
+init: true
+image: ghcr.io/joaod/aethersense-server
+options:
+  host: 0.0.0.0
+  port: 8000
+  udp_port: 5005
+  # Obrigatório para onboarding, comandos, CRUD IR e outras mutações REST.
+  # Defina um segredo longo antes de usar esses endpoints.
+  api_token: ""
+  mqtt_enabled: true
+  mqtt_host: ""
+  mqtt_port: 1883
+  mqtt_username: ""
+  mqtt_password: ""
+  mqtt_client_id: aethersense-addon
+  mqtt_base_topic: aethersense
+  mqtt_discovery_prefix: homeassistant
+  mqtt_retain: true
+  mqtt_publish_interval_ms: 500
+  mqtt_keep_alive_secs: 30
+schema:
+  host: str
+  port: port
+  udp_port: port
+  api_token: password?
+  mqtt_enabled: bool
+  mqtt_host: str?
+  mqtt_port: port
+  mqtt_username: str?
+  mqtt_password: password?
+  mqtt_client_id: str?
+  mqtt_base_topic: str?
+  mqtt_discovery_prefix: str?
+  mqtt_retain: bool?
+  mqtt_publish_interval_ms: int?
+  mqtt_keep_alive_secs: int?

@@ -1,0 +1,30 @@
+[package]
+name = "aethersense-firmware-rust"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[features]
+esp-idf = []
+
+[dependencies]
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[target.'cfg(target_os = "espidf")'.dependencies]
+esp-idf-hal = "0.46.2"
+esp-idf-sys = "0.37.2"
+esp-idf-svc = "0.52.0"
+
+[build-dependencies]
+embuild = { version = "0.33.1", features = ["espidf"] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1

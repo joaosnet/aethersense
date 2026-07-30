@@ -1,0 +1,2 @@
+# Shared espflash defaults for the firmware crate.
+baudrate = 921600

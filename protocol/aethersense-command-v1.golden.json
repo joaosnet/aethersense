@@ -1,0 +1,15 @@
+{
+  "schema": "aethersense.command.v1",
+  "request_id": "golden-ir-001",
+  "boot_id": null,
+  "issued_at_ms": 1784116800000,
+  "ttl_ms": 15000,
+  "action": "ir.send",
+  "params": {
+    "code_id": "air-power",
+    "carrier_hz": 38000,
+    "duty_percent": 33,
+    "sequence_us": [9000, 4500, 560, 560],
+    "repeats": 1
+  }
+}

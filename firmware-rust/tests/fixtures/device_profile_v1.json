@@ -1,0 +1,108 @@
+{
+  "schema": "aethersense.device_profile.v1",
+  "identity": {
+    "profile_uuid": "018f6f9a-7c10-7a90-8000-000000000001",
+    "device_id": null,
+    "name": "C5 laboratório"
+  },
+  "target": {
+    "chip": "esp32c5",
+    "board_variant": "generic",
+    "feature_set": ["csi", "ir", "mqtt", "relays", "sd"],
+    "partition_table": "partitions.csv"
+  },
+  "network": {
+    "wifi_ssid": "AetherSense-Lab",
+    "udp_host": "255.255.255.255",
+    "udp_port": 5005
+  },
+  "csi": {
+    "enabled": true,
+    "send_frequency_hz": 10,
+    "queue_capacity": 256,
+    "wifi_band": "auto",
+    "prefer_ht40": true,
+    "empty_room_only": true
+  },
+  "runtime": {
+    "status_led_enabled": false,
+    "status_led_gpio": null,
+    "status_led": {
+      "enabled": false,
+      "kind": "ws2812",
+      "gpios": {
+        "data": null,
+        "red": null,
+        "green": null,
+        "blue": null
+      },
+      "brightness_percent": 25,
+      "colors": {
+        "boot": [255, 160, 60],
+        "error": [255, 0, 0],
+        "ir_rx": [255, 220, 80],
+        "ir_tx": [255, 0, 255],
+        "offline": [0, 80, 255],
+        "online": [0, 180, 40],
+        "provisioning": [0, 220, 220],
+        "recording": [120, 40, 255]
+      }
+    }
+  },
+  "mqtt": {
+    "enabled": true,
+    "broker_host": "192.168.1.10",
+    "port": 1883,
+    "username": "device-c5-lab",
+    "tls": false,
+    "qos": 1,
+    "base_topic": "aethersense/devices"
+  },
+  "peripherals": {
+    "ir_rx": {
+      "enabled": true,
+      "gpio": 8,
+      "idle_threshold_us": 15000
+    },
+    "ir_tx": {
+      "enabled": true,
+      "gpio": 9,
+      "carrier_hz": 38000,
+      "duty_percent": 33
+    },
+    "relays": [
+      {
+        "id": "lamp",
+        "name": "Lâmpada",
+        "enabled": true,
+        "gpio": 10,
+        "active_high": true,
+        "pulse_limit_ms": 30000,
+        "restore_state": true
+      }
+    ]
+  },
+  "storage": {
+    "sd": {
+      "enabled": true,
+      "sclk_gpio": 0,
+      "mosi_gpio": 1,
+      "miso_gpio": 23,
+      "cs_gpio": 24,
+      "mount_point": "/sdcard",
+      "rotate_bytes": 4194304
+    },
+    "recording": {
+      "events_enabled": true,
+      "raw_csi_enabled": false,
+      "privacy_mode": "events_only"
+    }
+  },
+  "sync": {
+    "enabled": true,
+    "base_url": "http://192.168.1.10:8080/api/firmware-sd",
+    "network_first": true,
+    "block_bytes": 1048576,
+    "delete_after_sync": false
+  }
+}
