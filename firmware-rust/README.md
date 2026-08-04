@@ -74,6 +74,12 @@ the Cargo environment and binary, so two devices with the same target/features
 share one reproducible build. Passwords and tokens are resolved from keyring
 references only during provisioning and never written to profiles or logs.
 
+After a successful Wi-Fi association, the firmware also stores the non-secret
+`wifi_channel` hint in NVS. Subsequent boots start a fast scan on that channel;
+if the hint is absent or incompatible with the selected 2.4/5 GHz band, it is
+ignored and the firmware discovers the strongest matching SSID without pinning
+the connection to a BSSID. Cache read/write failures never block startup.
+
 For Docker Desktop on Windows, enter the host IPv4 in the TUI's UDP field when
 broadcast cannot reach the container, or run the repository's UDP relay. Apply
 the change through provisioning; no rebuild is needed.
