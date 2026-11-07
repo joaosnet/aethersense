@@ -13,6 +13,62 @@ Assistant.
 > experimentais e não devem ser usados para diagnóstico, segurança ou decisões
 > críticas.
 
+<p align="center">
+  <img src="docs/images/aethersense_showcase.gif" alt="AetherSense em Funcionamento - Showcase das Interfaces" width="100%">
+</p>
+
+## Demonstração do Sistema em Operação
+
+### 1. Visão Geral e Rastreamento em Tempo Real
+
+O modo operacional (*Dashboard Cliente*) apresenta a planta baixa interativa com a localização estimada em tempo real, mapa de calor de presença, contagem de ocupação e zonas delimitadas (ex.: box de chuveiro, áreas ativas):
+
+<p align="center">
+  <img src="docs/images/dashboard_cliente.png" alt="AetherSense - Dashboard Cliente com Rastreamento em Tempo Real" width="100%">
+</p>
+
+- **Rastreamento espacial**: cálculo contínuo de coordenadas \((x, y)\) com filtro EWMA;
+- **Detecção de ocupação**: contagem de pessoas via classificação ONNX e heurísticas estatísticas;
+- **Zonas configuráveis**: definição de polígonos e gatilhos de automação residencial.
+
+### 2. Processamento Digital de Sinais (DSP) & Diagnóstico de RF
+
+O modo de engenharia (*Dashboard Debug*) expõe o pipeline analítico de radiofrequência em tempo real, permitindo inspecionar o comportamento físico do canal sem fio:
+
+<p align="center">
+  <img src="docs/images/dashboard_debug.png" alt="AetherSense - Dashboard Debug de Engenharia e Pipeline DSP" width="100%">
+</p>
+
+- **Heatmap de Subportadoras**: matriz tempo \(\times\) subportadora da atenuação de amplitude;
+- **Espectrograma STFT Doppler**: detecção de velocidade e discriminação de micro-movimentos dinâmicos;
+- **Desenrolamento de Fase**: sanitização de erro residual de sincronismo de fase e amostragem;
+- **Perfil de Atraso de Potência (PDP)**: estimativa do espalhamento temporal por multitrajeto via IFFT.
+
+### 3. Topologia de Hardware & Calibração
+
+O sistema monitora dinamicamente a malha de dispositivos receptores e permite calibração de ruído estático sem necessidade de coleta de dados humanos locais:
+
+<p align="center">
+  <img src="docs/images/card_hardware_hud.png" alt="AetherSense - Telemetria e HUD de Nós ESP32" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/images/dashboard_calibracao.png" alt="AetherSense - Calibração de Sala Vazia e Validação Espacial" width="100%">
+</p>
+
+- **Telemetria de nós**: monitoramento em tempo real de taxa de amostragem (\(\sim 10\text{ Hz}\)), RSSI e latência por nó receptor (ESP32-WROOM-32 e ESP32-C5);
+- **Calibração de Sala Vazia (*Empty Room*)**: subtração de fundo para isolar variações do ambiente e mitigar efeitos de mobília e reflexões estáticas.
+
+### 4. Fundamentos Físicos & Extração de CSI
+
+O sensoriamento passivo do AetherSense utiliza a estrutura multiportadora do padrão IEEE 802.11 (OFDM). Cada quadro recebido carrega uma matriz de resposta em frequência do canal, sensível às perturbações causadas pelo corpo humano:
+
+<p align="center">
+  <img src="docs/images/infografico_ofdm_csi.png" alt="AetherSense - Infográfico OFDM e Extração de CSI no ESP32" width="85%">
+</p>
+
+---
+
 ## Componentes
 
 | Diretório | Conteúdo |
