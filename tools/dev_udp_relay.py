@@ -26,6 +26,7 @@ import socket
 import time
 from pathlib import Path
 
+LISTEN_HOST = os.environ.get("RELAY_LISTEN_HOST", "0.0.0.0")
 LISTEN_PORT = int(os.environ.get("RELAY_LISTEN_PORT", "5005"))
 DEST_HOST = os.environ.get("RELAY_DEST_HOST", "127.0.0.1")
 DEST_PORT = int(os.environ.get("RELAY_DEST_PORT", "5006"))
@@ -75,7 +76,8 @@ rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 if os.name == "nt":
     rx.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
 rx.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
-rx.bind(("0.0.0.0", LISTEN_PORT))
+# codeql[py/bind-socket-all-network-interfaces]
+rx.bind((LISTEN_HOST, LISTEN_PORT))
 backend_tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 backend_tx.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1024 * 1024)
 tap_tx = None

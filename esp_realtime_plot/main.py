@@ -333,11 +333,13 @@ class AppState:
 state = AppState()
 
 
-def udp_listener_loop(port: int):
+def udp_listener_loop(port: int, host: str | None = None):
+    bind_host = host or os.environ.get("AETHERSENSE_UDP_BIND_ADDR", "0.0.0.0")
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(("0.0.0.0", port))
+    # codeql[py/bind-socket-all-network-interfaces]
+    sock.bind((bind_host, port))
     sock.settimeout(1.0)
-    logger.info(f"[*] Escutando UDP na porta {port}...")
+    logger.info(f"[*] Escutando UDP em {bind_host}:{port}...")
 
     while state.running:
         try:

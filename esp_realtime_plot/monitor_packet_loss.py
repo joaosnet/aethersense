@@ -17,6 +17,11 @@ def main():
         default=0,
         help="Run duration in seconds (0 for infinite)",
     )
+    parser.add_argument(
+        "--host",
+        default=os.environ.get("AETHERSENSE_UDP_BIND_ADDR", "0.0.0.0"),
+        help="Host or network interface address to bind (default: 0.0.0.0)",
+    )
     args = parser.parse_args()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -29,10 +34,11 @@ def main():
         except Exception:
             pass
 
-    sock.bind(("0.0.0.0", args.port))
+    # codeql[py/bind-socket-all-network-interfaces]
+    sock.bind((args.host, args.port))
     sock.settimeout(0.5)
 
-    print(f"Listening for ESP32 packets on UDP port {args.port}...")
+    print(f"Listening for ESP32 packets on UDP {args.host}:{args.port}...")
     print(f"Reporting every {args.report_interval} seconds. Press Ctrl+C to stop.\n")
 
     last_seq = None
