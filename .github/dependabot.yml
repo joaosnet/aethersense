@@ -5,6 +5,7 @@ updates:
     directory: "/aethersense-server"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
     groups:
       dependencies:
         patterns:
@@ -15,6 +16,7 @@ updates:
     directory: "/firmware-rust"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
     groups:
       dependencies:
         patterns:
@@ -25,6 +27,7 @@ updates:
     directory: "/frontend"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
     groups:
       dependencies:
         patterns:
@@ -35,6 +38,7 @@ updates:
     directory: "/ml"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
     groups:
       dependencies:
         patterns:
@@ -45,6 +49,7 @@ updates:
     directory: "/esp_realtime_plot"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
     groups:
       dependencies:
         patterns:
@@ -55,6 +60,7 @@ updates:
     directory: "/firmware-rust"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0
     groups:
       dependencies:
         patterns:
