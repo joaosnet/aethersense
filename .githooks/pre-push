@@ -1,0 +1,15 @@
+#!/bin/sh
+# AetherSense Git Pre-Push Hook: Health Gate Verification
+set -e
+
+if [ -f "tools/repo_health_gate.py" ]; then
+    echo "🚀 [AetherSense Hook] Verifying repository health gate before push..."
+    uv run tools/repo_health_gate.py --local
+    echo "✅ [AetherSense Hook] Health gate approved for push."
+else
+    echo "🚀 [AetherSense Hook] Verifying local audits before push..."
+    cargo audit --file aethersense-server/Cargo.lock
+    cargo audit --file firmware-rust/Cargo.lock
+    npm audit --prefix frontend
+    echo "✅ [AetherSense Hook] Audits approved for push."
+fi

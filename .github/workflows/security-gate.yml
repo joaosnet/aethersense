@@ -1,0 +1,70 @@
+name: Security & Health Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security-audit:
+    name: Security & Vulnerability Audits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install cargo-audit
+        uses: cargo-bins/cargo-binstall@main
+      - run: cargo binstall -y cargo-audit
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Cargo Audit (aethersense-server & firmware-rust)
+        run: |
+          cargo audit --file aethersense-server/Cargo.lock
+          cargo audit --file firmware-rust/Cargo.lock
+
+      - name: Cargo Clippy (aethersense-server)
+        run: cargo clippy --manifest-path aethersense-server/Cargo.toml --tests -- -D warnings
+
+      - name: Cargo Test (aethersense-server)
+        run: cargo test --manifest-path aethersense-server/Cargo.toml
+
+      - name: NPM Audit & Lint (frontend)
+        working-directory: frontend
+        run: |
+          npm ci
+          npm audit --audit-level=high
+          npm run lint
+
+      - name: Python Dependency Audit
+        run: |
+          uv export --no-hashes --project ml --output-file ml_req.txt
+          uv export --no-hashes --project esp_realtime_plot --output-file esp_req.txt
+          uv export --no-hashes --project firmware-rust --output-file fw_req.txt
+          uv tool run pip-audit -r ml_req.txt -r esp_req.txt -r fw_req.txt

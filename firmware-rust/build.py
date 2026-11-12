@@ -1,5 +1,10 @@
 # ruff: noqa: I001
 import argparse
+import base64
+import glob
+import http.client
+import urllib.error
+import urllib.request
 import collections
 from dataclasses import dataclass, field, replace
 import datetime
@@ -181,6 +186,10 @@ ACTIONS = {
     ),
     "build": ActionSpec("Build", "Compile the firmware release image."),
     "flash": ActionSpec("Flash", "Build and flash the selected ESP32 board."),
+    "ota": ActionSpec(
+        "OTA Wi-Fi",
+        "Build firmware .bin and stream-upload over Wi-Fi OTA with rollback.",
+    ),
     "erase": ActionSpec("Erase", "Erase the selected ESP32 flash."),
     "monitor": ActionSpec(
         "Monitor",
@@ -262,6 +271,10 @@ class BuildOptions:
     sd_path: str | None = None
     results_dir: str | None = None
     allow_unpaired_legacy: bool = False
+    ota_host: str = "aethersense.local"
+    ota_password: str = field(default_factory=lambda: os.getenv("AETHERSENSE_OTA_PASSWORD", ""))
+    skip_build: bool = False
+    package_only: bool = False
 
 
 @dataclass(frozen=True)
@@ -519,12 +532,76 @@ def rust_host_target() -> str:
     fail("[ERROR] Could not determine the host Rust target from 'rustc -vV'.")
 
 
+def resolve_partition_table_path(working_dir: str) -> str | None:
+    candidate = os.path.join(working_dir, "partitions.csv")
+    return candidate if os.path.isfile(candidate) else None
+
+
+def partition_table_has_otadata(partition_table: str | None) -> bool:
+    if not partition_table or not os.path.isfile(partition_table):
+        return False
+    try:
+        return "otadata" in Path(partition_table).read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return False
+
+
+def find_esp_idf_bootloader(target_dir: str, rust_target: str) -> str | None:
+    if not target_dir:
+        return None
+    pattern = os.path.join(
+        target_dir,
+        rust_target,
+        "release",
+        "build",
+        "esp-idf-sys-*",
+        "out",
+        "build",
+        "bootloader",
+        "bootloader.bin",
+    )
+    matches = [p for p in glob.glob(pattern) if os.path.isfile(p)]
+    if not matches:
+        return None
+    matches.sort(key=os.path.getmtime, reverse=True)
+    return matches[0]
+
+
+def build_espflash_save_image_command(
+    *,
+    profile,
+    out_bin: str,
+    partition_table: str | None = None,
+):
+    command = [
+        "cargo",
+        "+esp",
+        "espflash",
+        "save-image",
+        "--target",
+        profile["target"],
+        "--release",
+        "--features",
+        "esp-idf",
+        "--chip",
+        resolve_espflash_chip(profile),
+    ]
+    if partition_table:
+        command.extend(["--partition-table", partition_table])
+    command.append(out_bin)
+    return command
+
+
 def build_espflash_command(
     *,
     profile,
     monitor=False,
     no_reset=False,
     port=None,
+    partition_table: str | None = None,
+    bootloader: str | None = None,
+    erase_parts: str | None = None,
+    flash_size: str | None = None,
     monitor_baud=DEFAULT_MONITOR_BAUD,
 ):
     command = ["cargo", "+esp", "espflash", "flash"]
@@ -546,6 +623,14 @@ def build_espflash_command(
     )
 
     command.extend(["--chip", resolve_espflash_chip(profile)])
+    if flash_size:
+        command.extend(["--flash-size", flash_size])
+    if partition_table:
+        command.extend(["--partition-table", partition_table])
+    if bootloader:
+        command.extend(["--bootloader", bootloader])
+    if erase_parts:
+        command.extend(["--erase-parts", erase_parts])
     baud = flash_baud_for_profile(profile)
     if baud:
         command.extend(["--baud", str(baud)])
@@ -1521,7 +1606,162 @@ def execute_monitor_action(
     )
 
 
-def prepare_action_command(options: BuildOptions, settings: BuildSettings, profile, env, sink):
+OTA_SLOT_MAX_BYTES = 0x1F0000  # 1,984 KiB per OTA slot
+
+
+def _ota_http_get_json(host: str, path: str, timeout: float = 5.0) -> dict[str, Any]:
+    req = urllib.request.Request(f"http://{host}{path}", method="GET")
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def execute_ota_action(
+    options: BuildOptions,
+    settings: BuildSettings,
+    profile,
+    env,
+    working_dir: str,
+    sink,
+    controller: ProcessController | None = None,
+) -> int:
+    partition_table = resolve_partition_table_path(working_dir)
+    if not options.skip_build:
+        emit(sink, f"[OTA] Compilando firmware para {profile['profile']}...")
+        build_exit = run_command(
+            build_cargo_build_command(profile),
+            env,
+            working_dir,
+            sink,
+            parse_monitor=False,
+            timeout_sec=options.timeout,
+            controller=controller,
+        )
+        if build_exit != 0:
+            return build_exit
+
+    out_dir = os.path.join(settings.project_dir, "build")
+    os.makedirs(out_dir, exist_ok=True)
+    out_bin = os.path.join(out_dir, f"aethersense-{profile['profile']}.bin")
+    if options.skip_build and os.path.exists(out_bin) and os.path.getsize(out_bin) >= 65536:
+        emit(sink, f"[OTA] --skip-build: reutilizando binario existente em {out_bin}.")
+    else:
+        emit(sink, f"[OTA] Exportando imagem de aplicacao (.bin) para {out_bin}...")
+        save_exit = run_command(
+            build_espflash_save_image_command(
+                profile=profile,
+                out_bin=out_bin,
+                partition_table=partition_table,
+            ),
+            env,
+            working_dir,
+            sink,
+            parse_monitor=False,
+            timeout_sec=options.timeout,
+            controller=controller,
+        )
+        if save_exit != 0:
+            return save_exit
+
+    data = Path(out_bin).read_bytes()
+    size_bytes = len(data)
+    if size_bytes < 65536 or data[0] != 0xE9:
+        raise BuildFailure(
+            f"[ERROR] Imagem OTA invalida ({size_bytes} bytes, magic=0x{data[0] if data else 0:02X})."
+        )
+    if size_bytes > OTA_SLOT_MAX_BYTES:
+        raise BuildFailure(
+            f"[ERROR] Imagem .bin excede o limite do slot OTA: {size_bytes} B > {OTA_SLOT_MAX_BYTES} B (1,984 KiB)."
+        )
+    pct_used = (size_bytes / OTA_SLOT_MAX_BYTES) * 100.0
+    emit(
+        sink,
+        f"[OTA] Imagem pronta: {size_bytes} bytes ({size_bytes / 1024:.1f} KiB, {pct_used:.1f}% de 1,984 KiB).",
+    )
+    if options.package_only:
+        emit(sink, f"[OTA] --package-only ativo: binario salvo em {out_bin}")
+        return 0
+
+    host = options.ota_host.strip()
+    try:
+        pre_status = _ota_http_get_json(host, "/api/status", timeout=5.0)
+        emit(
+            sink,
+            f"[OTA] Dispositivo online em {host}: slot={pre_status.get('active_slot')} "
+            f"v{pre_status.get('app_version')} ({pre_status.get('build_hash')}) uptime={pre_status.get('uptime_secs')}s",
+        )
+    except Exception as exc:
+        raise BuildFailure(f"[ERROR] Nao foi possivel consultar http://{host}/api/status: {exc}") from exc
+
+    token = base64.b64encode(f"admin:{options.ota_password}".encode("utf-8")).decode("ascii")
+    emit(sink, f"[OTA] Enviando stream HTTP para http://{host}/api/ota/upload...")
+    conn = http.client.HTTPConnection(host, 80, timeout=180)
+    try:
+        conn.putrequest("POST", "/api/ota/upload")
+        conn.putheader("Authorization", f"Basic {token}")
+        conn.putheader("Content-Type", "application/octet-stream")
+        conn.putheader("Content-Length", str(size_bytes))
+        conn.putheader("Connection", "close")
+        conn.endheaders()
+
+        chunk_size = 16384
+        sent = 0
+        next_report = 10
+        while sent < size_bytes:
+            chunk = data[sent : sent + chunk_size]
+            conn.send(chunk)
+            sent += len(chunk)
+            pct = int((sent * 100) / size_bytes)
+            if pct >= next_report or sent == size_bytes:
+                emit_progress(sink, min(90, 55 + int(pct * 0.35)), f"[OTA] Upload {pct}% ({sent}/{size_bytes} B)", "ota")
+                next_report += 10
+
+        resp = conn.getresponse()
+        body = resp.read().decode("utf-8", errors="replace")
+        emit(sink, f"[OTA] Resposta HTTP {resp.status}: {body}")
+        if resp.status != 200:
+            return 1
+    finally:
+        conn.close()
+
+    emit(sink, "[OTA] Aguardando reinicio no novo slot e validacao anti-brick...")
+    time.sleep(2.5)
+    deadline = time.monotonic() + 45.0
+    prev_slot = pre_status.get("active_slot")
+    while time.monotonic() < deadline:
+        try:
+            post_status = _ota_http_get_json(host, "/api/status", timeout=3.0)
+            new_slot = post_status.get("active_slot")
+            if post_status.get("status") == "online" and post_status.get("boot_validated"):
+                emit(
+                    sink,
+                    f"[OTA OK] Online no slot '{new_slot}' (anterior='{prev_slot}'), "
+                    f"boot_validated={post_status.get('boot_validated')}, "
+                    f"v{post_status.get('app_version')} ({post_status.get('build_hash')}), "
+                    f"uptime={post_status.get('uptime_secs')}s",
+                )
+                return 0
+        except Exception:
+            pass
+        time.sleep(1.5)
+
+    raise BuildFailure("[ERROR] Timeout aguardando reconexao pos-OTA em /api/status.")
+
+
+def prepare_action_command(
+    options: BuildOptions,
+    settings: BuildSettings,
+    profile,
+    env,
+    sink,
+    *,
+    working_dir: str | None = None,
+):
+    active_dir = working_dir or settings.project_dir
+    partition_table = resolve_partition_table_path(active_dir)
+    has_ota = partition_table_has_otadata(partition_table)
+    bootloader = find_esp_idf_bootloader(settings.target_dir, profile["target"]) if has_ota else None
+    erase_parts = "otadata" if has_ota else None
+    flash_size = "4mb" if has_ota and profile["chip"] == "esp32c5" else None
     if options.action == "test":
         emit(sink, "[INFO] Running host-side firmware tests (no ESP-IDF target/sandbox)...")
         return [
@@ -1557,7 +1797,14 @@ def prepare_action_command(options: BuildOptions, settings: BuildSettings, profi
             f"{profile['profile']} ({profile['target']}, chip={profile['chip']})...",
         )
         return (
-            build_espflash_command(profile=profile, port=flash_port),
+            build_espflash_command(
+                profile=profile,
+                port=flash_port,
+                partition_table=partition_table,
+                bootloader=bootloader,
+                erase_parts=erase_parts,
+                flash_size=flash_size,
+            ),
             False,
         )
 
@@ -1588,6 +1835,10 @@ def prepare_action_command(options: BuildOptions, settings: BuildSettings, profi
                 profile=profile,
                 monitor=True,
                 port=run_port,
+                partition_table=partition_table,
+                bootloader=bootloader,
+                erase_parts=erase_parts,
+                flash_size=flash_size,
             ),
             True,
         )
@@ -1607,6 +1858,10 @@ def prepare_action_command(options: BuildOptions, settings: BuildSettings, profi
                 monitor=True,
                 no_reset=True,
                 port=rescue_port,
+                partition_table=partition_table,
+                bootloader=bootloader,
+                erase_parts=erase_parts,
+                flash_size=flash_size,
             ),
             True,
         )
@@ -1711,7 +1966,46 @@ def execute_action(
         if ACTIONS[options.action].requires_sandbox:
             working_dir = sync_windows_sandbox(settings, sink)
 
-        cmd, parse_monitor = prepare_action_command(options, settings, profile, env, sink)
+        if options.action == "ota":
+            exit_code = execute_ota_action(
+                options,
+                settings,
+                profile,
+                env,
+                working_dir,
+                sink,
+                controller=controller,
+            )
+            emit_progress(sink, 94, "[STEP] Action finished.", "finished")
+            return exit_code
+
+        if options.action in {"flash", "run", "rescue"} and partition_table_has_otadata(
+            resolve_partition_table_path(working_dir)
+        ):
+            emit(
+                sink,
+                "[INFO] Partition table usa dual-slot OTA; compilando bootloader.bin + app antes do espflash...",
+            )
+            prebuild_code = run_command(
+                build_cargo_build_command(profile),
+                env,
+                working_dir,
+                sink,
+                parse_monitor=False,
+                timeout_sec=options.timeout,
+                controller=controller,
+            )
+            if prebuild_code != 0:
+                return prebuild_code
+
+        cmd, parse_monitor = prepare_action_command(
+            options,
+            settings,
+            profile,
+            env,
+            sink,
+            working_dir=working_dir,
+        )
         emit_progress(sink, 55, "[STEP] Command prepared.", "command")
         exit_code = run_command(
             cmd,
@@ -2221,6 +2515,26 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Explicitly allow legacy destructive CLI actions without eFuse identity checks.",
     )
+    parser.add_argument(
+        "--host",
+        default="aethersense.local",
+        help="Hostname or IP for Wi-Fi OTA upload (default: aethersense.local).",
+    )
+    parser.add_argument(
+        "--ota-password",
+        default=os.getenv("AETHERSENSE_OTA_PASSWORD", ""),
+        help="Admin portal password for HTTP Basic Auth on /api/ota/upload (or set AETHERSENSE_OTA_PASSWORD env var).",
+    )
+    parser.add_argument(
+        "--skip-build",
+        action="store_true",
+        help="For 'ota' action, skip cargo build and package/upload existing ELF.",
+    )
+    parser.add_argument(
+        "--package-only",
+        action="store_true",
+        help="For 'ota' action, export the .bin image without uploading over Wi-Fi.",
+    )
     parser.add_argument("--tui", action="store_true", help="Open the Textual build TUI.")
     parser.add_argument(
         "--no-tui",
@@ -2327,6 +2641,10 @@ def main() -> int:
         sd_path=args.sd_path,
         results_dir=args.results_dir,
         allow_unpaired_legacy=args.allow_unpaired_legacy,
+        ota_host=args.host,
+        ota_password=args.ota_password,
+        skip_build=args.skip_build,
+        package_only=args.package_only,
     )
 
     if should_open_tui(args):

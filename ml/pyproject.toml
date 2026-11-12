@@ -22,10 +22,8 @@ dependencies = [
     # Relatório HTML
     "jinja2>=3.1",
     "matplotlib>=3.8",
-    # Dataset download helpers
+    # Dataset download helpers (Zenodo/Kaggle usam endpoints REST via requests)
     "requests>=2.31",
-    "zenodo-get>=0.4",
-    "kaggle>=1.6",
     "gdown>=5.0",
 ]
 

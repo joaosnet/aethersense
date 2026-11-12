@@ -16,7 +16,7 @@ use esp_idf_svc::sys::{self, esp_wifi_set_ps, EspError, ESP_FAIL};
 #[cfg(all(feature = "esp-idf", target_os = "espidf"))]
 use esp_idf_svc::wifi::{
     AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi, PmfConfiguration,
-    ScanMethod, WifiEvent,
+    ScanMethod, ScanSortMethod, WifiEvent,
 };
 #[cfg(all(feature = "esp-idf", target_os = "espidf"))]
 use std::net::Ipv4Addr;
@@ -52,15 +52,55 @@ fn cached_channel_for_band(band: &str, cached: Option<u8>) -> Option<u8> {
 }
 
 #[cfg(any(test, all(feature = "esp-idf", target_os = "espidf")))]
+fn repair_corrupted_utf8(s: &str) -> String {
+    if s.chars().any(|c| (c as u32) >= 0x80 && (c as u32) <= 0xFF) {
+        let raw_bytes: Vec<u8> = s.chars().map(|c| c as u8).collect();
+        if let Ok(repaired) = String::from_utf8(raw_bytes) {
+            return repaired;
+        }
+    }
+    s.to_string()
+}
+
+#[cfg(any(test, all(feature = "esp-idf", target_os = "espidf")))]
 fn strongest_matching_channel<'a, I>(target_ssid: &str, candidates: I) -> Option<(u8, i8)>
 where
     I: IntoIterator<Item = (&'a str, u8, i8)>,
 {
-    candidates
-        .into_iter()
-        .filter(|(ssid, _, _)| *ssid == target_ssid)
+    let target = target_ssid.trim();
+    let list: Vec<(&'a str, u8, i8)> = candidates.into_iter().collect();
+
+    // 1. Busca exata
+    if let Some((_, ch, rssi)) = list
+        .iter()
+        .filter(|(ssid, _, _)| ssid.trim() == target)
         .max_by_key(|(_, _, rssi)| *rssi)
-        .map(|(_, channel, rssi)| (channel, rssi))
+    {
+        return Some((*ch, *rssi));
+    }
+
+    // 2. Busca case-insensitive
+    if let Some((_, ch, rssi)) = list
+        .iter()
+        .filter(|(ssid, _, _)| ssid.trim().eq_ignore_ascii_case(target))
+        .max_by_key(|(_, _, rssi)| *rssi)
+    {
+        return Some((*ch, *rssi));
+    }
+
+    // 3. Fallback por prefixo se houver caracteres especiais/acentos divergentes
+    if target.len() >= 3 {
+        let prefix = &target[..3];
+        if let Some((_, ch, rssi)) = list
+            .iter()
+            .filter(|(ssid, _, _)| ssid.starts_with(prefix))
+            .max_by_key(|(_, _, rssi)| *rssi)
+        {
+            return Some((*ch, *rssi));
+        }
+    }
+
+    None
 }
 
 #[cfg(all(feature = "esp-idf", target_os = "espidf"))]
@@ -112,7 +152,12 @@ pub fn connect_wifi(
         let mut buf = [0u8; 128];
         if let Ok(Some(s)) = store.get_str("ssid", &mut buf) {
             if !s.trim().is_empty() {
-                final_ssid = s.to_string();
+                let repaired = repair_corrupted_utf8(s);
+                if repaired != s {
+                    log::warn!("wifi repaired corrupted SSID from NVS: '{}' -> '{}'", s, repaired);
+                    let _ = store.set_str("ssid", &repaired);
+                }
+                final_ssid = repaired;
                 creds_from_nvs = true;
             }
         }
@@ -122,8 +167,12 @@ pub fn connect_wifi(
         cached_channel = store.get_u8(WIFI_CHANNEL_CACHE_KEY).ok().flatten();
     }
 
-    let channel_hint = cached_channel_for_band(&config.wifi_band, cached_channel);
-    if cached_channel.is_some() && channel_hint.is_none() {
+    let channel_hint = if creds_from_nvs {
+        None
+    } else {
+        cached_channel_for_band(&config.wifi_band, cached_channel)
+    };
+    if cached_channel.is_some() && channel_hint.is_none() && !creds_from_nvs {
         log::warn!(
             "wifi ignored cached channel {:?}: incompatible with band {}",
             cached_channel,
@@ -170,8 +219,8 @@ pub fn connect_wifi(
                 AuthMethod::WPA2Personal
             },
             password: password.try_into().unwrap(),
-            channel: channel_hint,
-            scan_method: ScanMethod::FastScan,
+            channel: None,
+            scan_method: ScanMethod::CompleteScan(ScanSortMethod::Signal),
             pmf_cfg: PmfConfiguration::Capable { required: false },
             ..Default::default()
         });
@@ -180,7 +229,7 @@ pub fn connect_wifi(
 
         log::warn!("wifi started");
         wifi.start()?;
-        configure_wifi_band_mode(config);
+        configure_wifi_band_mode(config, creds_from_nvs);
         disable_wifi_power_save();
         configure_wifi_phy(config);
 
@@ -192,6 +241,26 @@ pub fn connect_wifi(
             let scan_started_at = Instant::now();
             match wifi.scan_n::<32>() {
                 Ok((access_points, found_count)) => {
+                    let mut scanned_list = Vec::new();
+                    for ap in access_points.iter() {
+                        let name = ap.ssid.as_str().trim();
+                        if !name.is_empty() {
+                            scanned_list.push(crate::web_server::ScannedNetwork {
+                                ssid: name.to_string(),
+                                channel: ap.channel,
+                                rssi: ap.signal_strength,
+                            });
+                        }
+                        log::warn!(
+                            "  [wifi scan] ssid='{}' channel={} rssi={} dBm",
+                            ap.ssid.as_str(),
+                            ap.channel,
+                            ap.signal_strength
+                        );
+                    }
+                    crate::web_server::update_scanned_networks(&scanned_list);
+
+                    let effective_band = if creds_from_nvs { "auto" } else { &config.wifi_band };
                     let candidate = strongest_matching_channel(
                         ssid,
                         access_points
@@ -199,7 +268,7 @@ pub fn connect_wifi(
                             .map(|ap| (ap.ssid.as_str(), ap.channel, ap.signal_strength)),
                     )
                     .and_then(|(channel, rssi)| {
-                        cached_channel_for_band(&config.wifi_band, Some(channel))
+                        cached_channel_for_band(effective_band, Some(channel))
                             .map(|valid_channel| (valid_channel, rssi))
                     });
 
@@ -214,10 +283,11 @@ pub fn connect_wifi(
                         );
                     } else {
                         log::warn!(
-                            "wifi scan completed in {} ms: visible={} target SSID not found; using cached hint {:?}",
+                            "wifi scan completed in {} ms: visible={} target SSID '{}' not found in band {}; using fallback full scan",
                             scan_started_at.elapsed().as_millis(),
                             found_count,
-                            selected_channel
+                            ssid,
+                            effective_band
                         );
                     }
                 }
@@ -239,7 +309,11 @@ pub fn connect_wifi(
                 },
                 password: password.try_into().unwrap(),
                 channel: selected_channel,
-                scan_method: ScanMethod::FastScan,
+                scan_method: if selected_channel.is_some() {
+                    ScanMethod::FastScan
+                } else {
+                    ScanMethod::CompleteScan(ScanSortMethod::Signal)
+                },
                 pmf_cfg: PmfConfiguration::Capable { required: false },
                 ..Default::default()
             }))?;
@@ -250,7 +324,7 @@ pub fn connect_wifi(
             let attempt = retries + 1;
             let attempt_started_at = Instant::now();
             log::warn!(
-                "wifi association attempt {}/{}: ssid={} scan=fast channel_hint={:?}",
+                "wifi association attempt {}/{}: ssid={} channel={:?}",
                 attempt,
                 config.wifi_max_retry,
                 ssid,
@@ -271,9 +345,9 @@ pub fn connect_wifi(
                             "driver disconnected: reason={reason} rssi={rssi} dBm"
                         ));
                     }
-                    if attempt_started_at.elapsed() >= Duration::from_secs(5) {
+                    if attempt_started_at.elapsed() >= Duration::from_secs(10) {
                         let _ = wifi.wifi_mut().disconnect();
-                        break Some("local 5000 ms association deadline reached".to_string());
+                        break Some("local 10000 ms association deadline reached".to_string());
                     }
                     std::thread::sleep(Duration::from_millis(25));
                 },
@@ -308,7 +382,7 @@ pub fn connect_wifi(
                 let radio_restart_started_at = Instant::now();
                 wifi.stop()?;
                 wifi.start()?;
-                configure_wifi_band_mode(config);
+                configure_wifi_band_mode(config, creds_from_nvs);
                 disable_wifi_power_save();
                 configure_wifi_phy(config);
                 log::warn!(
@@ -330,6 +404,9 @@ pub fn connect_wifi(
         log::warn!("wifi associated; waiting for DHCP...");
         wifi.wait_netif_up()?;
         let (gateway_ip, subnet_broadcast_ip) = station_ip_info(&mut wifi)?;
+        if let Ok(ip_info) = wifi.wifi().sta_netif().get_ip_info() {
+            crate::web_server::update_network_status(&ip_info.ip.to_string(), ssid);
+        }
         log::warn!(
             "wifi DHCP ready after {} ms",
             dhcp_started_at.elapsed().as_millis()
@@ -377,7 +454,7 @@ fn disable_wifi_power_save() {
 }
 
 #[cfg(all(feature = "esp-idf", target_os = "espidf"))]
-fn read_station_mac() -> Result<[u8; 6], EspError> {
+pub fn read_station_mac() -> Result<[u8; 6], EspError> {
     let mut mac = [0u8; 6];
     unsafe {
         let result = sys::esp_wifi_get_mac(
@@ -453,36 +530,31 @@ fn configure_wifi_phy(config: &FirmwareConfig) {
     target_os = "espidf",
     not(any(aethersense_esp32_classic, target_arch = "xtensa"))
 ))]
-fn configure_wifi_band_mode(config: &FirmwareConfig) {
+fn configure_wifi_band_mode(config: &FirmwareConfig, creds_from_nvs: bool) {
     if !is_multiband_profile(&config.hardware_profile) {
+        return;
+    }
+    if creds_from_nvs {
+        log::warn!("wifi credentials from NVS: allowing dual-band auto (2.4 GHz + 5 GHz)");
         return;
     }
 
     let band = config.wifi_band.trim().to_ascii_lowercase();
-    let (mode, label) = match band.as_str() {
-        "" | "auto" | "2g" | "2.4g" | "2.4ghz" => {
-            (sys::wifi_band_mode_t_WIFI_BAND_MODE_2G_ONLY, "2.4 GHz only")
-        }
-        "5g" | "5ghz" => (sys::wifi_band_mode_t_WIFI_BAND_MODE_5G_ONLY, "5 GHz only"),
-        other => {
-            log::warn!(
-                "warning: unknown AETHERSENSE_WIFI_BAND '{}', using 2.4 GHz only for CSI",
-                other
-            );
-            (sys::wifi_band_mode_t_WIFI_BAND_MODE_2G_ONLY, "2.4 GHz only")
-        }
-    };
-
-    unsafe {
-        let result = sys::esp_wifi_set_band_mode(mode);
-        if result == 0 {
-            log::warn!("wifi band mode: {}", label);
-        } else {
-            log::warn!(
-                "warning: esp_wifi_set_band_mode({}) failed with code {}",
-                label,
-                result
-            );
+    match band.as_str() {
+        "2g" | "2.4g" | "2.4ghz" => unsafe {
+            let result = sys::esp_wifi_set_band_mode(sys::wifi_band_mode_t_WIFI_BAND_MODE_2G_ONLY);
+            if result == 0 {
+                log::warn!("wifi band mode: 2.4 GHz only");
+            }
+        },
+        "5g" | "5ghz" => unsafe {
+            let result = sys::esp_wifi_set_band_mode(sys::wifi_band_mode_t_WIFI_BAND_MODE_5G_ONLY);
+            if result == 0 {
+                log::warn!("wifi band mode: 5 GHz only");
+            }
+        },
+        _ => {
+            log::warn!("wifi band mode: dual-band auto (2.4 GHz + 5 GHz)");
         }
     }
 }
@@ -492,7 +564,7 @@ fn configure_wifi_band_mode(config: &FirmwareConfig) {
     target_os = "espidf",
     any(aethersense_esp32_classic, target_arch = "xtensa")
 ))]
-fn configure_wifi_band_mode(_config: &FirmwareConfig) {}
+fn configure_wifi_band_mode(_config: &FirmwareConfig, _creds_from_nvs: bool) {}
 
 #[cfg(all(
     feature = "esp-idf",

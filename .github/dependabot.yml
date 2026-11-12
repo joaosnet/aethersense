@@ -1,0 +1,61 @@
+version: 2
+updates:
+  # aethersense-server Cargo dependencies
+  - package-ecosystem: "cargo"
+    directory: "/aethersense-server"
+    schedule:
+      interval: "weekly"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  # firmware-rust Cargo dependencies
+  - package-ecosystem: "cargo"
+    directory: "/firmware-rust"
+    schedule:
+      interval: "weekly"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  # Frontend npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  # ML Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/ml"
+    schedule:
+      interval: "weekly"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  # Realtime Plot Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/esp_realtime_plot"
+    schedule:
+      interval: "weekly"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  # Firmware Python tooling dependencies
+  - package-ecosystem: "pip"
+    directory: "/firmware-rust"
+    schedule:
+      interval: "weekly"
+    groups:
+      dependencies:
+        patterns:
+          - "*"

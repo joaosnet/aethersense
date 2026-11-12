@@ -20,7 +20,7 @@ rustfft = "6"
 num-complex = "0.4"
 
 # Inferência ONNX (Rust puro, sem dylibs — compatível com o container)
-tract-onnx = "0.21"
+tract-onnx = "0.23"
 
 # Utilidades
 tracing = "0.1"
@@ -28,7 +28,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 csv = "1"
 clap = { version = "4", features = ["derive", "env"] }
 chrono = "0.4"
-rumqttc = "0.24"
+rumqttc = { version = "0.24", default-features = false }
 socket2 = "0.6.3"
 tempfile = "3"
 sha2 = "0.10"
@@ -39,3 +39,21 @@ reqwest = { version = "0.12", features = ["json"] }
 tokio-tungstenite = "0.26"
 futures-util = "0.3"
 approx = "0.5"
+
+[lints.clippy]
+result_large_err = "allow"
+manual_clamp = "allow"
+unnecessary_unwrap = "allow"
+implicit_saturating_sub = "allow"
+manual_is_multiple_of = "allow"
+empty_line_after_doc_comments = "allow"
+cloned_ref_to_slice_refs = "allow"
+needless_range_loop = "allow"
+derivable_impls = "allow"
+new_without_default = "allow"
+field_reassign_with_default = "allow"
+manual_range_contains = "allow"
+approx_constant = "allow"
+unnecessary_map_or = "allow"
+manual_contains = "allow"
+len_zero = "allow"

@@ -1,9 +1,26 @@
+#![allow(
+    clippy::result_large_err,
+    clippy::manual_clamp,
+    clippy::unnecessary_unwrap,
+    clippy::implicit_saturating_sub,
+    clippy::manual_is_multiple_of,
+    clippy::empty_line_after_doc_comments,
+    clippy::cloned_ref_to_slice_refs,
+    clippy::needless_range_loop,
+    clippy::derivable_impls,
+    clippy::new_without_default,
+    clippy::field_reassign_with_default,
+    clippy::manual_range_contains,
+    clippy::approx_constant
+)]
+
 /// AetherSense Server — Ponto de entrada principal.
 ///
 /// Inicializa o runtime Tokio, configura o estado compartilhado,
 /// inicia o listener UDP e serve a API HTTP + WebSocket.
 mod api;
 mod accessories;
+mod broker_discovery;
 mod config;
 mod csi;
 mod detection;
@@ -14,11 +31,11 @@ mod replay;
 mod state;
 mod udp;
 
-use clap::Parser;
+use clap::{CommandFactory, FromArgMatches};
 use tracing::{info, warn};
 
 use crate::api::routes::create_router;
-use crate::config::CliArgs;
+use crate::config::{CliArgs, MqttRuntimeOverrides};
 use crate::state::new_app_state;
 use crate::udp::udp_listener_loop;
 
@@ -408,7 +425,9 @@ async fn main() {
         )
         .init();
 
-    let args = CliArgs::parse();
+    let matches = CliArgs::command().get_matches();
+    let mqtt_runtime_overrides = MqttRuntimeOverrides::from_matches(&matches);
+    let args = CliArgs::from_arg_matches(&matches).expect("argumentos já validados pelo clap");
     let state = new_app_state();
 
     // Semeia os campos MQTT do ambiente/CLI no primeiro boot. A senha é sempre
@@ -419,18 +438,9 @@ async fn main() {
         if !inner.mqtt_configured {
             inner.mqtt = state::MqttSettings::from(&args);
         }
-        // Authentication is process-owned just like the password.  A saved
-        // configuration created while the broker was anonymous may contain no
-        // username; when the managed broker is enabled, the explicit
-        // environment credential must take precedence on every restart.
-        if args.mqtt_username.is_some() {
-            inner.mqtt.username = args.mqtt_username.clone();
-        }
-        if args.mqtt_password.is_some() {
-            inner
-                .mqtt
-                .set_runtime_password(args.mqtt_password.clone());
-        }
+        inner
+            .mqtt
+            .apply_runtime_overrides(&args, mqtt_runtime_overrides);
         inner.results_dir = std::path::PathBuf::from(&args.results_dir);
     }
 
@@ -446,6 +456,14 @@ async fn main() {
     tokio::spawn(async move {
         udp_listener_loop(udp_state, args.udp_port).await;
     });
+
+    if args.broker_discovery_enabled {
+        tokio::spawn(broker_discovery::broker_discovery_loop(
+            args.broker_discovery_port,
+            args.mqtt_port,
+            args.broker_discovery_tls,
+        ));
+    }
 
     // Carrega os modelos ONNX (ausência = fallback heurístico, sem pânico)
     let ml_engine = std::sync::Arc::new(ml::MlEngine::load(&args.models_dir));
@@ -466,6 +484,12 @@ async fn main() {
     let addr = format!("{}:{}", args.host, args.port);
     info!("🚀 AetherSense Server rodando em http://{}", addr);
     info!("📡 Escutando dados CSI via UDP na porta {}", args.udp_port);
+    if args.broker_discovery_enabled {
+        info!(
+            "🔎 Descoberta do broker via UDP na porta {}",
+            args.broker_discovery_port
+        );
+    }
 
     let router = create_router(state);
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();

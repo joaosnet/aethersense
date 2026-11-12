@@ -31,7 +31,7 @@ use crate::state::{
     VitalsEstimate,
 };
 
-type OnnxModel = SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>>;
+type OnnxModel = std::sync::Arc<tract_onnx::tract_core::model::TypedSimplePlan>;
 
 #[derive(Debug, Deserialize, Default)]
 struct OccupancyMetadata {
@@ -307,11 +307,11 @@ impl MlEngine {
         .map_err(|e| TractError::msg(format!("shape de entrada inválido: {e}")))?;
         let outputs = model.run(tvec!(Tensor::from(input).into()))?;
 
-        let logits = outputs[0].to_array_view::<f32>()?;
+        let logits = outputs[0].to_plain_array_view::<f32>()?;
         let logits: Vec<f64> = logits.iter().map(|v| *v as f64).collect();
         let probabilities = softmax(&logits);
 
-        let heat_view = outputs[1].to_array_view::<f32>()?;
+        let heat_view = outputs[1].to_plain_array_view::<f32>()?;
         let shape = heat_view.shape().to_vec();
         let (heat_h, heat_w) = match shape.as_slice() {
             [_, _, h, w] => (*h, *w),
@@ -343,7 +343,7 @@ impl MlEngine {
             Err(_) => return VitalsEstimate::default(),
         };
         match model.run(tvec!(Tensor::from(input).into())) {
-            Ok(outputs) => match outputs[0].to_array_view::<f32>() {
+            Ok(outputs) => match outputs[0].to_plain_array_view::<f32>() {
                 Ok(view) => {
                     let values: Vec<f64> = view.iter().map(|v| *v as f64).collect();
                     let breathing_hz = values.first().copied();
@@ -423,7 +423,7 @@ mod tests {
 
     fn c5_device() -> DeviceInfo {
         DeviceInfo {
-            id: "02:00:00:00:00:01".to_string(),
+            id: "d0:cf:13:eb:f3:8c".to_string(),
             name: "C5 teste".to_string(),
             lat: -1.45,
             lng: -48.49,

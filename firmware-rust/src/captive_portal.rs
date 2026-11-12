@@ -13,7 +13,7 @@ use esp_idf_svc::sys::{
 };
 #[cfg(all(feature = "esp-idf", target_os = "espidf"))]
 use esp_idf_svc::wifi::{
-    AccessPointConfiguration, BlockingWifi, ClientConfiguration, Configuration as WifiConfiguration,
+    AccessPointConfiguration, AuthMethod, BlockingWifi, ClientConfiguration, Configuration as WifiConfiguration,
 };
 #[cfg(all(feature = "esp-idf", target_os = "espidf"))]
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -60,21 +60,22 @@ fn portal_wifi_plan(already_started: bool) -> &'static [PortalWifiStep] {
 
 #[cfg(all(feature = "esp-idf", target_os = "espidf"))]
 fn decode_url(input: &str) -> String {
-    let mut out = String::new();
+    let mut bytes = Vec::new();
     let mut chars = input.chars();
     while let Some(c) = chars.next() {
         if c == '%' {
             let hex: String = chars.by_ref().take(2).collect();
             if let Ok(b) = u8::from_str_radix(&hex, 16) {
-                out.push(b as char);
+                bytes.push(b);
             }
         } else if c == '+' {
-            out.push(' ');
+            bytes.push(b' ');
         } else {
-            out.push(c);
+            let mut buf = [0u8; 4];
+            bytes.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
         }
     }
-    out
+    String::from_utf8(bytes).unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned())
 }
 
 #[cfg(all(feature = "esp-idf", target_os = "espidf"))]
@@ -124,10 +125,14 @@ pub fn start_captive_portal(
     nvs_partition: EspDefaultNvsPartition,
     timeout_secs: Option<u32>,
 ) -> Result<(), EspError> {
+    let sta_mac = crate::wifi::read_station_mac().unwrap_or([0u8; 6]);
+    let portal_pin = crate::auth::portal_password_from_mac(sta_mac);
+    log::info!("Captive Portal SoftAP SSID: AetherSense-Config, PIN: {}", portal_pin);
     let ap_config = WifiConfiguration::AccessPoint(AccessPointConfiguration {
         ssid: "AetherSense-Config".try_into().unwrap(),
-        password: "".try_into().unwrap(),
+        password: portal_pin.as_str().try_into().unwrap(),
         channel: 6,
+        auth_method: AuthMethod::WPA2Personal,
         ..Default::default()
     });
 
@@ -173,52 +178,45 @@ pub fn start_captive_portal(
         }
     });
 
-    let mut server = EspHttpServer::new(&Configuration::default())
+    let dispatch = crate::web_server::get_global_dispatch().unwrap_or_default();
+    let mut led = crate::web_server::get_global_status_led().unwrap_or_else(|| {
+        crate::status_led::StatusLed::new(&crate::config::FirmwareConfig::default())
+    });
+    led.set(crate::status_led::StatusColor::Provisioning);
+    crate::web_server::update_network_status("192.168.71.1", "AetherSense-Config");
+
+    let mut config = Configuration::default();
+    config.stack_size = 10240;
+    config.max_uri_handlers = 24;
+    config.lru_purge_enable = true;
+    config.max_open_sockets = 4;
+
+    let mut server = EspHttpServer::new(&config)
         .map_err(|_| EspError::from_infallible::<ESP_FAIL>())?;
 
-    // Marca de atividade do usuário (segundos desde o boot), tocada pelos handlers
-    // de UI; o watchdog só reinicia se ficar ocioso, nunca no meio da configuração.
+    crate::web_server::register_web_routes(&mut server, dispatch, led, nvs_partition.clone(), true)?;
+
     let last_activity = Arc::new(AtomicU32::new(monotonic_secs()));
-
-    let activity_index = last_activity.clone();
-    server.fn_handler("/", esp_idf_svc::http::Method::Get, move |request| {
-        activity_index.store(monotonic_secs(), Ordering::Relaxed);
-        let html = r#"<!DOCTYPE html>
-<html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AetherSense Config</title>
-    <style>
-        body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f2f5; }
-        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 90%; max-width: 400px; }
-        h1 { color: #1a1a1a; text-align: center; margin-top: 0; }
-        input { width: 100%; padding: 12px; margin: 8px 0 20px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 14px; background: #0066cc; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        button:hover { background: #0052a3; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h1>Wi-Fi Config</h1>
-        <form action="/save" method="post">
-            <label>SSID</label>
-            <input type="text" name="ssid" required>
-            <label>Password</label>
-            <input type="password" name="password">
-            <button type="submit">Connect</button>
-        </form>
-    </div>
-</body>
-</html>"#;
-        let mut response = request.into_ok_response()?;
-        response.write_all(html.as_bytes())?;
-        Ok::<(), EspIOError>(())
-    })?;
-
+    let activity_clone = last_activity.clone();
     let nvs_clone = nvs_partition.clone();
-    let activity_save = last_activity.clone();
+    let pin_clone = portal_pin.clone();
     server.fn_handler("/save", esp_idf_svc::http::Method::Post, move |mut request| {
-        activity_save.store(monotonic_secs(), Ordering::Relaxed);
+        activity_clone.store(monotonic_secs(), Ordering::Relaxed);
+        let is_auth = request
+            .header("Authorization")
+            .map_or(false, |h| crate::auth::verify_portal_basic_auth(h, &pin_clone));
+        if !is_auth {
+            let mut response = request.into_response(
+                401,
+                Some("Unauthorized"),
+                &[
+                    ("WWW-Authenticate", "Basic realm=\"AetherSense Config\""),
+                    ("Content-Type", "text/plain"),
+                ],
+            )?;
+            response.write_all(b"Nao autorizado")?;
+            return Ok::<(), EspIOError>(());
+        }
         let mut buf = [0u8; 256];
         let len = request.read(&mut buf)?;
         let body = std::str::from_utf8(&buf[..len]).unwrap_or("");
@@ -239,22 +237,18 @@ pub fn start_captive_portal(
         if let Ok(store) = EspNvs::new(nvs_clone.clone(), "aethersense", true) {
             let _ = store.set_str("ssid", &ssid);
             let _ = store.set_str("password", &password);
+            let _ = store.remove("wifi_channel");
             log::warn!("Credentials saved to NVS. Restarting...");
         }
 
         let mut response = request.into_ok_response()?;
-        response.write_all(b"<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Saved</title><style>body{font-family:sans-serif;text-align:center;padding:50px;}</style></head><body><h2>Credentials Saved</h2><p>Device is restarting to connect.</p></body></html>")?;
+        response.write_all(b"<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Salvo</title><style>body{font-family:sans-serif;text-align:center;padding:50px;background:#1a1b26;color:#c0caf5;}h2{color:#73daca;}</style></head><body><h2>Credenciais Salvas!</h2><p>O ESP32-C5 esta reiniciando para conectar na sua rede.</p></body></html>")?;
 
         std::thread::spawn(|| {
-            std::thread::sleep(std::time::Duration::from_secs(2));
+            std::thread::sleep(std::time::Duration::from_millis(800));
             unsafe { esp_restart() };
         });
 
-        Ok::<(), EspIOError>(())
-    })?;
-
-    server.fn_handler("/generate_204", esp_idf_svc::http::Method::Get, |request| {
-        let _response = request.into_response(204, None, &[])?;
         Ok::<(), EspIOError>(())
     })?;
 

@@ -1,0 +1,2066 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AetherSense C5 • Hub IR & Automação</title>
+  <style>
+    :root {
+      /* Palette: Tokyo Night Authentic */
+      --bg: #1a1b26;
+      --card-bg: #24283b;
+      --card-inner: #1f2335;
+      --border: #292e42;
+      --border-focus: #414868;
+      --text: #c0caf5;
+      --text-muted: #565f89;
+      --tokyo-blue: #7aa2f7;
+      --tokyo-cyan: #7dcfff;
+      --tokyo-purple: #bb9af7;
+      --tokyo-green: #73daca;
+      --tokyo-orange: #ff9e64;
+      --tokyo-red: #f7768e;
+      --tokyo-yellow: #e0af68;
+      
+      /* Dracula Accent Palette */
+      --drac-bg: #282a36;
+      --drac-purple: #bd93f9;
+      --drac-pink: #ff79c6;
+      --drac-cyan: #8be9fd;
+      --drac-green: #50fa7b;
+      --drac-orange: #ffb86c;
+      --drac-red: #ff5555;
+      --drac-yellow: #f1fa8c;
+
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      -webkit-tap-highlight-color: transparent; 
+      -webkit-font-smoothing: antialiased; 
+      -moz-osx-font-smoothing: grayscale; 
+      text-rendering: optimizeLegibility;
+    }
+    html, body { max-width: 100%; overflow-x: hidden; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); padding: 14px; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: min(440px, 100%); min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    
+    /* Typographic & Craft Utilities */
+    .tabular-nums {
+      font-variant-numeric: tabular-nums lining-nums;
+      font-feature-settings: "tnum" 1, "lnum" 1;
+    }
+
+    /* Header Tokyo Night */
+    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 4px 2px; min-width: 0; }
+    .logo-badge { width: 34px; height: 34px; border-radius: 9px; background: var(--card-bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 800; color: var(--tokyo-cyan); font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 0 rgba(255,255,255,0.08); }
+    .status-pill { font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; background: rgba(115, 218, 202, 0.12); color: var(--tokyo-green); border: 1px solid rgba(115, 218, 202, 0.3); }
+    .live-clock { font-family: var(--font-mono); font-size: 13px; color: var(--tokyo-orange); background: var(--card-inner); padding: 4px 9px; border-radius: 7px; border: 1px solid var(--border); font-weight: 700; letter-spacing: 0.05em; font-variant-numeric: tabular-nums; }
+    
+    /* Segmented Control de Aparelhos (Top Tabs) */
+    .nav-tabs { display: flex; background: var(--card-inner); padding: 3px; border-radius: 10px; border: 1px solid var(--border); gap: 2px; overflow-x: auto; scrollbar-width: none; }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .tab-btn { flex: 1; min-width: 70px; padding: 8px 6px; font-size: 11px; font-weight: 600; text-align: center; border-radius: 7px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 150ms ease, color 150ms ease; white-space: nowrap; }
+    .tab-btn:active { transform: scale(0.96); }
+    .tab-btn.active { background: var(--tokyo-blue); color: #0f111a; font-weight: 700; box-shadow: 0 2px 8px rgba(122, 162, 247, 0.3); }
+    
+    /* Cards Tokyo Night com Layered Depth & Bevel Rim */
+    .card { 
+      background: var(--card-bg); 
+      border: 1px solid var(--border); 
+      border-radius: 14px; 
+      padding: 15px; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 12px; 
+      min-width: 0;
+      max-width: 100%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -4px rgba(0,0,0,0.45), inset 0 1px 0 0 rgba(255,255,255,0.08); 
+      position: relative;
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+    .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--tokyo-blue); font-family: var(--font-mono); }
+    
+    /* Tactile Hero Button (Emil Kowalski) */
+    .btn-hero { 
+      background: linear-gradient(135deg, var(--tokyo-blue), #5e8cf7); 
+      color: #0f111a; 
+      font-family: var(--font-sans); 
+      font-weight: 700; 
+      font-size: 14px; 
+      border: none; 
+      border-radius: 10px; 
+      padding: 13px 15px; 
+      cursor: pointer; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      box-shadow: 0 4px 14px rgba(122, 162, 247, 0.25), inset 0 1px 0 0 rgba(255,255,255,0.2); 
+      transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 150ms ease, opacity 120ms ease; 
+      will-change: transform;
+    }
+    .btn-hero:active { transform: scale(0.972) translateY(1px); box-shadow: 0 2px 6px rgba(122, 162, 247, 0.2); opacity: 0.92; }
+    
+    /* Timers & Grids */
+    .timer-val { font-family: var(--font-mono); font-size: 36px; font-weight: 800; color: var(--tokyo-orange); line-height: 1; font-variant-numeric: tabular-nums; }
+    .progress-bar { width: 100%; height: 6px; background: var(--card-inner); border-radius: 3px; overflow: hidden; border: 1px solid var(--border); }
+    .progress-fill { height: 100%; width: 100%; background: var(--tokyo-orange); transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease; }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .grid-2 > *, .grid-3 > *, .grid-4 > * { min-width: 0; }
+    
+    /* Buttons & Chips (Tactile Micro-interactions) */
+    .btn-action { 
+      background: var(--card-inner); 
+      border: 1px solid var(--border); 
+      color: var(--text); 
+      padding: 9px; 
+      border-radius: 8px; 
+      font-size: 12px; 
+      font-weight: 600; 
+      cursor: pointer; 
+      text-align: center; 
+      box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.05);
+      transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease; 
+      will-change: transform;
+    }
+    .btn-action:active { transform: scale(0.972) translateY(1px); background: var(--border); box-shadow: none; }
+    .btn-pause { border-color: rgba(247, 118, 142, 0.4); color: var(--tokyo-red); }
+    .btn-dock { border-color: rgba(115, 218, 202, 0.4); color: var(--tokyo-green); }
+    
+    .chip { 
+      background: var(--card-inner); 
+      border: 1px solid var(--border); 
+      border-radius: 6px; 
+      padding: 6px 4px; 
+      font-size: 11px; 
+      font-family: var(--font-mono); 
+      text-align: center; 
+      cursor: pointer; 
+      user-select: none; 
+      color: var(--text-muted); 
+      transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), background-color 150ms ease, border-color 150ms ease, color 150ms ease; 
+      will-change: transform;
+    }
+    .chip:active { transform: scale(0.95); }
+    .chip.active { background: rgba(122, 162, 247, 0.15); border-color: var(--tokyo-blue); color: var(--tokyo-blue); font-weight: 700; }
+    
+    /* Tactile D-Pad */
+    .dpad-container { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 0; }
+    .dpad-btn { 
+      width: 44px; 
+      height: 44px; 
+      background: var(--card-inner); 
+      border: 1px solid var(--border); 
+      border-radius: 10px; 
+      color: var(--text); 
+      font-size: 16px; 
+      cursor: pointer; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.06);
+      transition: transform 100ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease, color 120ms ease; 
+      will-change: transform;
+    }
+    .dpad-btn:active { transform: scale(0.92) translateY(1px); background: var(--tokyo-blue); color: #000; box-shadow: none; }
+    
+    /* Sliders & Switches */
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--card-inner); border: 1px solid var(--border); transition: .2s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--text-muted); transition: .2s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--tokyo-green); border-color: var(--tokyo-green); }
+    input:checked + .slider:before { transform: translateX(20px); background-color: #0f111a; }
+    
+    .range-slider { width: 100%; -webkit-appearance: none; height: 6px; border-radius: 3px; background: var(--card-inner); outline: none; border: 1px solid var(--border); }
+    .range-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--tokyo-cyan); cursor: pointer; border: 2px solid var(--bg); box-shadow: 0 0 6px var(--tokyo-cyan); }
+    
+    /* Event Colors & Selects */
+    .event-color-row { display: flex; justify-content: space-between; align-items: center; background: var(--card-inner); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); }
+    .color-picker-input { border: none; width: 34px; height: 34px; border-radius: 6px; background: transparent; cursor: pointer; }
+    .wifi-select { width: 100%; background: var(--card-inner); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: var(--font-mono); font-size: 12px; outline: none; }
+    .wifi-select:focus { border-color: var(--tokyo-cyan); }
+
+    /* Inputs */
+    input, select { max-width: 100%; min-width: 0; }
+    .search-input { width: 100%; max-width: 100%; min-width: 0; background: var(--card-inner); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 13px; outline: none; font-family: var(--font-sans); }
+    .search-input:focus { border-color: var(--tokyo-cyan); }
+    
+    /* Sonner-Style Toast Notification with Backdrop Blur */
+    .toast { 
+      position: fixed; 
+      bottom: 24px; 
+      left: 50%; 
+      transform: translateX(-50%) translateY(80px); 
+      background: rgba(31, 35, 53, 0.94); 
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(125, 207, 255, 0.35); 
+      color: var(--tokyo-cyan); 
+      font-family: var(--font-mono); 
+      font-size: 11px; 
+      font-weight: 600;
+      padding: 10px 20px; 
+      border-radius: 9999px; 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+      transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease; 
+      pointer-events: none; 
+      z-index: 1000; 
+      box-shadow: 0 8px 28px rgba(0,0,0,0.55), inset 0 1px 0 0 rgba(255,255,255,0.1); 
+      opacity: 0;
+      letter-spacing: 0.02em;
+      max-width: calc(100vw - 24px);
+      white-space: normal;
+      text-align: center;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    
+    /* Optical Radar Beacon Keyframes (120 FPS) */
+    @keyframes optical-radar {
+      0% { transform: scale(0.92); opacity: 0.95; }
+      50% { transform: scale(1.15); opacity: 0.4; }
+      100% { transform: scale(0.92); opacity: 0.95; }
+    }
+    .radar-pulse-active {
+      animation: optical-radar 1.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    }
+
+    /* Motion Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Views */
+    .view-panel { display: none; flex-direction: column; gap: 12px; min-width: 0; max-width: 100%; }
+    .view-panel.active { display: flex; }
+
+    @media (max-width: 480px) {
+      body { padding: 10px; }
+      .card { padding: 12px; }
+      .tab-btn { min-width: 0; font-size: 10.5px; padding: 8px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="logo-badge">C5</div>
+        <div>
+          <div style="font-size:14px; font-weight:700; color:#fff;">AetherSense Hub</div>
+          <div class="status-pill" id="connStatus">ONLINE • IR TX 940nm</div>
+        </div>
+      </div>
+      <div class="live-clock" id="clockDisplay">--:--:--</div>
+    </header>
+
+    <!-- Top Tabs (Navegação Segmentada Dinâmica) -->
+    <div class="nav-tabs" id="navTabsContainer">
+      <button class="tab-btn active" id="tabbtn-robot" onclick="switchTab('tab-robot')">🧹 Mondial</button>
+      <div id="dynamicTabButtons" style="display:contents;"></div>
+      <button class="tab-btn" id="tabbtn-led" onclick="switchTab('tab-led')">💡 LED RGB</button>
+      <button class="tab-btn" id="tabbtn-catalog" onclick="switchTab('tab-catalog')">🌐 Catálogo</button>
+      <button class="tab-btn" id="tabbtn-wifi" onclick="switchTab('tab-wifi')">⚙️ Wi-Fi</button>
+    </div>
+
+    <!-- VIEW 1: MONDIAL RB-04 (100% IMPLEMENTADO) -->
+    <div class="view-panel active" id="tab-robot">
+      <!-- Ciclo Principal de Limpeza -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Operação de Limpeza</span>
+          <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted);">Mondial RB-04</span>
+        </div>
+        <button class="btn-hero" id="btnMainClean" onclick="toggleCleanSession()">
+          <div style="display:flex; flex-direction:column; text-align:left;">
+            <span id="btnMainLabel">Limpar Cômodo (25 min)</span>
+            <span style="font-size:11px; opacity:0.85; font-weight:500;">Wakeup Duplo + Auto + Retorno Dock</span>
+          </div>
+          <span style="font-size:18px;">▶</span>
+        </button>
+
+        <!-- Cronômetro Ativo -->
+        <div id="activeProgress" style="display:none; flex-direction:column; gap:10px; padding:6px 0;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+            <span class="timer-val" id="timerDigits">25:00</span>
+            <span style="font-size:11px; font-family:var(--font-mono); color:var(--tokyo-cyan);" id="timerPhase">Varredura Ativa</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="timerBar"></div></div>
+        </div>
+
+        <div class="grid-2">
+          <button class="btn-action btn-pause" id="btnPauseResume" onclick="togglePauseResume()">⏸ Pausar</button>
+          <button class="btn-action btn-dock" onclick="abortToDock()">🏠 Voltar à Base</button>
+        </div>
+      </div>
+
+      <!-- Agendamento & Tomada Neo Avant (Persistido na NVS) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Agendamento & Base</span>
+          <span class="status-pill" id="ntpSyncBadge" style="color:var(--tokyo-orange); border-color:rgba(255,158,100,0.35); background:rgba(255,158,100,0.1);">AGUARDANDO NTP</span>
+        </div>
+
+        <div class="toggle-row" style="background:var(--card-inner); padding:10px 12px; border-radius:10px; border:1px solid var(--border);">
+          <div style="padding-right:10px;">
+            <div style="font-size:13px; font-weight:600;">Disparo Diário Automático</div>
+            <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);" id="schedClockStatus">Relógio ESP (UTC-3): --:--</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="schedEnabledToggle" onchange="saveSchedule()">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--card-inner); padding:10px 12px; border-radius:10px; border:1px solid var(--border);">
+          <div style="display:flex; flex-direction:column;">
+            <span style="font-size:13px; font-weight:600;">Hora de Partida</span>
+            <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Horário local (BRT UTC-3)</span>
+          </div>
+          <input type="time" id="schedTimeInput" value="10:00" onchange="onScheduleTimeChange()" style="background:#0f111a; border:1px solid var(--border); color:var(--tokyo-orange); padding:6px 10px; border-radius:6px; font-family:var(--font-mono); font-size:16px; font-weight:700; outline:none;">
+        </div>
+
+        <div class="grid-2">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">AÇÃO PROGRAMADA:</span>
+            <select id="schedCommandSelect" class="wifi-select" style="padding:8px 10px; font-size:11px;">
+              <option value="auto" selected>Modo Automático (Auto)</option>
+              <option value="start_pause">Iniciar / Pausar</option>
+              <option value="random">Limpeza Aleatória</option>
+              <option value="power">Ligar / Standby</option>
+            </select>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">RETORNO À BASE:</span>
+            <select id="schedDockSelect" class="wifi-select" style="padding:8px 10px; font-size:11px;">
+              <option value="0" selected>Desativado (0 min)</option>
+              <option value="25">Após 25 min</option>
+              <option value="45">Após 45 min</option>
+              <option value="60">Após 60 min</option>
+              <option value="90">Após 90 min</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="background:rgba(15,17,26,0.6); padding:10px; border-radius:8px; border:1px solid var(--border); font-family:var(--font-mono); font-size:11px; display:flex; flex-direction:column; gap:4px;">
+          <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
+            <span>Guia Tomada Neo Avant (Tuya)</span>
+            <span style="color:var(--tokyo-green);">-5m / +150m • 3S</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; color:var(--text);">
+            <span id="plugOnTxt">Liga: 09:55</span>
+            <span style="color:var(--text-muted);">•</span>
+            <span id="plugOffTxt">Desliga: 12:30</span>
+          </div>
+          <div style="font-size:10px; color:var(--text-muted);" id="schedLastRunTxt">Último disparo automático: nenhum</div>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+          <button class="btn-action" onclick="saveSchedule()" style="flex:1; color:var(--tokyo-blue); border-color:var(--tokyo-blue); font-weight:700; padding:10px;">
+            💾 Salvar Agendamento na NVS
+          </button>
+          <button class="btn-action" onclick="syncScheduleClock()" title="Sincronizar relógio do ESP32 usando o navegador caso NTP UDP esteja bloqueado" style="padding:10px 12px; color:var(--tokyo-cyan); border-color:var(--border-focus); font-size:11px;">
+            🕒 Sinc. Hora
+          </button>
+        </div>
+      </div>
+
+      <!-- D-Pad Direcional -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Controle Direcional</span>
+          <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted);">Manual 38 kHz</span>
+        </div>
+        <div class="dpad-container">
+          <button class="dpad-btn" onclick="sendIR('ir-msbxsnf3-5752b8ee', 'Frente')">▲</button>
+          <div style="display:flex; gap:8px;">
+            <button class="dpad-btn" onclick="sendIR('ir-msbxsgde-880df807', 'Esquerda')">◀</button>
+            <button class="dpad-btn" style="background:var(--bg); font-size:10px; font-family:var(--font-mono); color:var(--tokyo-red);" onclick="sendIR('ir-msbxqpq9-f99822c9', 'Stop')">STOP</button>
+            <button class="dpad-btn" onclick="sendIR('ir-msbxs9sc-32042ee5', 'Direita')">▶</button>
+          </div>
+          <button class="dpad-btn" onclick="sendIR('ir-msbxstfs-42f1d587', 'Ré')">▼</button>
+        </div>
+        <div class="grid-3" style="margin-top:2px;">
+          <div class="chip" onclick="sendIR('ir-msbxr6jd-c146967b', 'Auto')">Bordas</div>
+          <div class="chip" onclick="sendIR('ir-msbxrqbv-e136febb', 'Random')">Random</div>
+          <div class="chip" onclick="sendIR('ir-msbxrfuk-c2de78f8', 'Power')">Espiral</div>
+        </div>
+      </div>
+
+      <!-- Modo Aprender / Gravar Controle Remoto Físico (GPIO 8) -->
+      <div class="card" style="border-color: rgba(247,118,142,0.4);">
+        <div class="card-header">
+          <span class="card-title">📡 Gravar Controle Original (Mondial)</span>
+          <span class="status-pill" style="color:var(--tokyo-red); border-color:var(--tokyo-red);">RMT RX • GPIO 8</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); line-height:1.4;">
+          Aponte o controle original para o receptor <b>VS1838B (GPIO 8)</b> e grave os pulsos exatos para substituir qualquer lógica pré-gravada.
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+          <label style="font-size:11px; font-weight:600; color:var(--text-muted);">Selecione a Função / Tecla:</label>
+          <select id="learnCmdSelect" style="width:100%; padding:10px; background:var(--card-inner); color:var(--text); border:1px solid var(--border); border-radius:8px; font-size:12px; font-family:var(--font-sans); outline:none;">
+            <option value="start_pause">▶⏸ Início / Pausa (ir-msbxqpq9-f99822c9)</option>
+            <option value="auto">🔄 Limpeza Automática / Bordas (ir-msbxr6jd-c146967b)</option>
+            <option value="random">🔀 Modo Random (ir-msbxrqbv-e136febb)</option>
+            <option value="power">🌀 Modo Espiral / Power (ir-msbxrfuk-c2de78f8)</option>
+            <option value="dock">🏠 Voltar à Base / Dock (ir-msbxqymm-278361ff)</option>
+            <option value="arrow_up">▲ Frente (ir-msbxsnf3-5752b8ee)</option>
+            <option value="arrow_down">▼ Ré (ir-msbxstfs-42f1d587)</option>
+            <option value="arrow_left">◀ Esquerda (ir-msbxsgde-880df807)</option>
+            <option value="arrow_right">▶ Direita (ir-msbxs9sc-32042ee5)</option>
+          </select>
+        </div>
+
+        <!-- Botão Principal de Início -->
+        <button id="learnBtnStart" class="btn-action" onclick="startIrLearning()" style="width:100%; padding:12px; border-color:var(--tokyo-red); color:var(--tokyo-red); font-weight:700; background:rgba(247,118,142,0.1); border-radius:10px; font-size:12px; margin-top:4px;">
+          🔴 Gravar Tecla Selecionada (15s)
+        </button>
+
+        <!-- Caixa de Escuta Ativa (Listening) -->
+        <div id="learnListeningBox" style="display:none; padding:14px; background:rgba(247,118,142,0.08); border:1px dashed var(--tokyo-red); border-radius:10px; text-align:center;">
+          <div style="font-size:13px; font-weight:700; color:var(--tokyo-red); margin-bottom:4px;">
+            📡 Ouvindo Sinal no GPIO 8...
+          </div>
+          <div style="font-size:11px; color:var(--text); margin-bottom:10px;">
+            Aponte o controle físico e aperte <b id="learnTargetName" style="color:var(--tokyo-yellow);">Início/Pausa</b> agora!
+          </div>
+          <button class="btn-action" onclick="cancelIrLearning()" style="padding:6px 14px; font-size:11px; border-color:var(--border); color:var(--text-muted);">
+            ✕ Cancelar
+          </button>
+        </div>
+
+        <!-- Caixa de Sinal Capturado (Success com Qualidade e Jitter) -->
+        <div id="learnCapturedBox" style="display:none; padding:12px; background:rgba(115,218,202,0.1); border:1px solid var(--tokyo-green); border-radius:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:12px; font-weight:700; color:var(--tokyo-green);">✅ Sinal Capturado com Sucesso!</span>
+            <span id="capturedPulsesText" class="tabular-nums" style="font-size:10px; font-family:var(--font-mono); color:var(--text-muted);">17 pulsos (38 kHz)</span>
+          </div>
+
+          <!-- Medidor de Qualidade e Telemetria de Jitter -->
+          <div style="background:var(--card-inner); padding:8px 10px; border-radius:8px; margin-bottom:10px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); font-weight:700;">Qualidade do Alcance</span>
+              <span id="capturedQualityBadge" class="tabular-nums" style="font-size:11px; font-weight:700; color:var(--tokyo-green);">100% • Excelente</span>
+            </div>
+            <div class="progress-bar" style="height:5px;">
+              <div id="capturedQualityBar" class="progress-fill" style="width:100%; background:var(--tokyo-green);"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:9px; color:var(--text-muted); font-family:var(--font-mono);">
+              <span>Jitter Médio: <b id="capturedJitterText" class="tabular-nums" style="color:var(--text);">±12 µs</b></span>
+              <span id="capturedGradeTip">Sinal nítido, alcance ideal</span>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:8px;">
+            <button class="btn-action" onclick="testLearnedIr()" style="flex:1; padding:10px; border-color:var(--tokyo-yellow); color:var(--tokyo-yellow); font-weight:700; background:rgba(224,175,104,0.1); font-size:11px;">
+              ⚡ Testar no Robô
+            </button>
+            <button class="btn-action" onclick="saveLearnedIr()" style="flex:1; padding:10px; border-color:var(--tokyo-green); color:var(--tokyo-green); font-weight:700; background:rgba(115,218,202,0.1); font-size:11px;">
+              💾 Salvar na NVS
+            </button>
+          </div>
+        </div>
+
+        <!-- Radar de Alcance em Tempo Real no LED RGB -->
+        <div style="margin-top:6px; border-top:1px solid var(--border); padding-top:10px;">
+          <button id="btnRadarToggle" class="btn-action" onclick="toggleRadarMode()" style="width:100%; padding:10px 12px; border-color:rgba(187,154,247,0.4); color:var(--tokyo-purple); font-weight:700; background:rgba(187,154,247,0.08); border-radius:10px; font-size:11px; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <span>📡 Iniciar Radar de Alcance no LED RGB (60s)</span>
+          </button>
+
+          <!-- Painel Ativo do Radar -->
+          <div id="radarActivePanel" style="display:none; margin-top:8px; padding:12px; background:rgba(187,154,247,0.08); border:1px solid rgba(187,154,247,0.3); border-radius:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span id="radarIndicatorDot" class="radar-pulse-active" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--tokyo-purple);"></span>
+                <span style="font-size:11px; font-weight:700; color:var(--tokyo-purple);">Radar Ativo • Teste pela Sala</span>
+              </div>
+              <span id="radarCountdownText" class="tabular-nums" style="font-family:var(--font-mono); font-size:11px; color:var(--tokyo-orange); font-weight:700;">60s</span>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted); line-height:1.4; margin-bottom:8px;">
+              Pressione botões no controle enquanto se afasta do ESP32. O LED RGB WS2812 e a barra refletem a intensidade:
+            </div>
+            <div class="progress-bar" style="height:6px; margin-bottom:4px;">
+              <div id="radarQualityBar" class="progress-fill" style="width:0%; background:var(--tokyo-purple); transition:width 0.2s ease, background 0.2s ease;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; font-family:var(--font-mono); color:var(--text-muted);">
+              <span>Último Sinal: <b id="radarPulseCount" class="tabular-nums" style="color:var(--text);">--</b></span>
+              <span id="radarQualityText" class="tabular-nums" style="font-weight:700; color:var(--tokyo-purple);">Aguardando disparos...</span>
+            </div>
+            <button class="btn-action" onclick="stopRadarMode()" style="width:100%; padding:6px; margin-top:8px; font-size:10px; border-color:var(--border); color:var(--text-muted);">
+              Encerrar Radar
+            </button>
+          </div>
+        </div>
+
+        <!-- Lista de Teclas e Status -->
+        <div style="margin-top:6px;">
+          <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px; letter-spacing:0.5px;">
+            Status da Memória de Teclas:
+          </div>
+          <div id="learnedBadgesContainer" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;"></div>
+        </div>
+      </div>
+
+      <!-- Auto-Diagnóstico Óptico do Emissor IR (Loopback GPIO 9 -> GPIO 8 • Sem Câmera) -->
+      <div class="card" style="border-color: rgba(125,207,255,0.35);">
+        <div class="card-header">
+          <span class="card-title">🔍 Auto-Diagnóstico Óptico IR</span>
+          <span class="status-pill" id="opticalPill" style="color:var(--tokyo-cyan); border-color:var(--tokyo-cyan);">TX GPIO 9 ➜ RX GPIO 8</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); line-height:1.5;">
+          Validação direta sem câmera: o ESP32 dispara rajada calibrada no <b>GPIO 9</b> e o sensor <b>VS1838B (GPIO 8)</b> valida a recepção em tempo real (&lt;150ms).
+        </div>
+        <button id="btnOpticalSelfTest" class="btn-action" style="width:100%; padding:12px; border-color:var(--tokyo-cyan); color:var(--tokyo-cyan); font-weight:700; background:rgba(125,207,255,0.1); border-radius:10px; font-size:12px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="runOpticalSelfTest()">
+          <span>⚡ Testar Emissor IR (Validação Óptica)</span>
+        </button>
+        <div id="opticalResultBox" style="display:none; padding:10px 12px; border-radius:8px; font-size:11px; display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+          <span id="opticalResultMsg" style="font-weight:600;">--</span>
+          <span id="opticalResultPulses" class="tabular-nums" style="font-family:var(--font-mono); font-size:10px;">--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAINÉIS DINÂMICOS DE DISPOSITIVOS IMPORTADOS -->
+    <div id="dynamicPanelsContainer"></div>
+
+    <!-- VIEW 2: ILUMINAÇÃO LED RGB (DOIS TOGGLES: STANDBY E EVENTOS) -->
+    <div class="view-panel" id="tab-led">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Iluminação WS2812 (GPIO 27)</span>
+          <span class="status-pill" style="color:var(--tokyo-purple); border-color:var(--tokyo-purple);">NVS PERSISTENTE</span>
+        </div>
+
+        <!-- Toggle 1: Luz Contínua em Standby -->
+        <div class="toggle-row" style="border-bottom:1px solid var(--border); padding-bottom:10px;">
+          <div style="padding-right:10px;">
+            <div style="font-size:13px; font-weight:600;">Luz Contínua em Standby</div>
+            <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);" id="ledStandbyTxt">Apagado em repouso (Discreto)</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="ledStandbyToggle" onchange="updateLedToggles()">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Toggle 2: Feedback Visual de Eventos -->
+        <div class="toggle-row">
+          <div style="padding-right:10px;">
+            <div style="font-size:13px; font-weight:600;">Feedback Visual de Eventos</div>
+            <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);" id="ledEventsTxt">Pulsos ativos (IR, Wi-Fi, Erros)</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="ledEventsToggle" checked onchange="updateLedToggles()">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Brilho Global -->
+        <div style="display:flex; flex-direction:column; gap:6px; padding:6px 0;">
+          <div style="display:flex; justify-content:space-between; font-size:12px;">
+            <span style="color:var(--text-muted);">Intensidade Global de Brilho:</span>
+            <span style="font-family:var(--font-mono); color:var(--tokyo-cyan);" id="ledBrightTxt">75%</span>
+          </div>
+          <input type="range" min="5" max="100" value="75" class="range-slider" id="ledBrightSlider" oninput="updateLedBrightness(this.value)">
+        </div>
+
+        <!-- Botões de Preset 1-Clique -->
+        <div style="display:flex; gap:8px; margin-top:2px;">
+          <button class="btn-action" style="flex:1; border-color:var(--drac-purple); color:var(--drac-purple); font-weight:700; padding:9px 6px; font-size:11px;" onclick="applyPreset('dracula')">🧛 Preset Dracula</button>
+          <button class="btn-action" style="flex:1; border-color:var(--tokyo-cyan); color:var(--tokyo-cyan); font-weight:700; padding:9px 6px; font-size:11px;" onclick="applyPreset('tokyo')">🌃 Preset Tokyo Night</button>
+        </div>
+
+        <!-- Mapeamento de Cores por Evento -->
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+          <span style="font-size:11px; font-weight:700; color:var(--text-muted); font-family:var(--font-mono); letter-spacing:0.5px;">MAPEAMENTO DE CORES POR EVENTO:</span>
+          
+          <div class="event-color-row">
+            <div>
+              <div style="font-size:12px; font-weight:600; color:var(--text);">Standby / Conectado</div>
+              <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">Robô em repouso e Wi-Fi online</div>
+            </div>
+            <input type="color" id="evtColor_standby" value="#bd93f9" class="color-picker-input">
+          </div>
+
+          <div class="event-color-row">
+            <div>
+              <div style="font-size:12px; font-weight:600; color:var(--text);">Disparo IR (TX)</div>
+              <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">Pulso ao emitir sinal infravermelho</div>
+            </div>
+            <input type="color" id="evtColor_ir_tx" value="#50fa7b" class="color-picker-input">
+          </div>
+
+          <div class="event-color-row">
+            <div>
+              <div style="font-size:12px; font-weight:600; color:var(--text);">Conectando Wi-Fi</div>
+              <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">Buscando rede no boot</div>
+            </div>
+            <input type="color" id="evtColor_connecting" value="#8be9fd" class="color-picker-input">
+          </div>
+
+          <div class="event-color-row">
+            <div>
+              <div style="font-size:12px; font-weight:600; color:var(--text);">Ponto de Acesso (AP)</div>
+              <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">Rede local AetherSense-Config</div>
+            </div>
+            <input type="color" id="evtColor_ap_mode" value="#ffb86c" class="color-picker-input">
+          </div>
+
+          <div class="event-color-row">
+            <div>
+              <div style="font-size:12px; font-weight:600; color:var(--text);">Erro / Falha</div>
+              <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">Falha de conexão ou comando inválido</div>
+            </div>
+            <input type="color" id="evtColor_error" value="#ff5555" class="color-picker-input">
+          </div>
+        </div>
+
+        <button class="btn-action" style="width:100%; margin-top:12px; background:linear-gradient(135deg, rgba(122,162,247,0.2), rgba(187,154,247,0.2)); border-color:var(--tokyo-cyan); color:var(--tokyo-cyan); font-weight:700; padding:12px; font-size:13px; border-radius:8px;" onclick="saveLedConfig()">
+          💾 Gravar Cores na Memória NVS
+        </button>
+      </div>
+    </div>
+
+    <!-- VIEW 3: CATÁLOGO DINÂMICO & IMPORTADOR -->
+    <div class="view-panel" id="tab-catalog">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Catálogo Online • Flipper-IRDB</span>
+          <span class="status-pill" style="color:var(--tokyo-green);">CLOUD SYNC</span>
+        </div>
+        <input type="text" class="search-input" id="catalogSearch" placeholder="🔍 Buscar marca ou modelo (Samsung, LG, Midea)..." oninput="filterCatalog()">
+        
+        <div style="display:flex; gap:6px; overflow-x:auto; padding:2px 0;" id="catChipsContainer">
+          <div class="chip active" onclick="selectCat('all')">Todos</div>
+          <div class="chip" onclick="selectCat('TVs')">TVs</div>
+          <div class="chip" onclick="selectCat('Air_Conditioners')">Ar-Cond.</div>
+          <div class="chip" onclick="selectCat('Fans')">Ventiladores</div>
+        </div>
+
+        <!-- Lista Filtrada do Catálogo -->
+        <div id="catalogList" style="display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; padding-right:2px;">
+          <!-- Itens renderizados dinamicamente via JS -->
+        </div>
+
+        <!-- Importador de JSON Customizado -->
+        <div style="background:rgba(15,17,26,0.6); padding:12px; border-radius:8px; border:1px solid var(--border); display:flex; flex-direction:column; gap:8px;">
+          <span style="font-size:11px; font-weight:700; color:var(--tokyo-purple); font-family:var(--font-mono);">IMPORTAR CONTROLE (JSON / GIST)</span>
+          <textarea id="jsonTextInput" placeholder='Cole o JSON do controle aqui... Ex: {"name":"Minha TV","category":"TVs","commands":[{"id":"power","label":"Ligar"}]}' class="search-input" style="height:70px; font-family:var(--font-mono); font-size:11px; resize:none;"></textarea>
+          
+          <div style="display:flex; gap:6px;">
+            <button class="btn-action" onclick="importJsonDirect()" style="flex:1; color:var(--tokyo-green); border-color:var(--tokyo-green); padding:8px; font-weight:700;">
+              📥 Adicionar ao Mural
+            </button>
+            <label class="btn-action" style="padding:8px 12px; cursor:pointer; color:var(--tokyo-cyan); border-color:var(--tokyo-cyan); font-weight:600;">
+              📁 Arquivo
+              <input type="file" id="jsonFileInput" accept=".json" onchange="loadJsonFromFile(this)" style="display:none;">
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: GERENCIAMENTO WI-FI & SCANNER -->
+    <div class="view-panel" id="tab-wifi">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Conectividade & Wi-Fi</span>
+          <span class="status-pill" id="wifiStatusPill" style="color:var(--tokyo-green); border-color:var(--tokyo-green); background:rgba(115,218,202,0.1);">CONECTADO</span>
+        </div>
+        <div style="background:var(--card-inner); padding:12px; border-radius:10px; border:1px solid var(--border); display:flex; flex-direction:column; gap:8px; font-family:var(--font-mono); font-size:12px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--text-muted);">Rede Conectada:</span>
+            <span style="color:var(--tokyo-cyan); font-weight:700;" id="wifiCurSsid">Identificando...</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--text-muted);">Endereço IP Local:</span>
+            <span style="color:var(--tokyo-green);" id="wifiCurIp">--.--.--.--</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--text-muted);">Acesso Direto AP:</span>
+            <span style="color:var(--tokyo-purple);">http://192.168.71.1</span>
+          </div>
+        </div>
+
+        <!-- Seletor com Scanner de Redes -->
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:11px; font-weight:700; color:var(--text-muted); font-family:var(--font-mono);">SELECIONAR REDE WI-FI:</span>
+            <button class="btn-action" style="padding:4px 8px; font-size:11px; border-color:var(--tokyo-cyan); color:var(--tokyo-cyan);" onclick="scanWifiNetworks()">🔄 Escanear</button>
+          </div>
+
+          <select id="wifiSsidSelect" class="wifi-select" onchange="onSsidSelectChange()">
+            <option value="" disabled selected>🔍 Buscando redes ao alcance...</option>
+          </select>
+
+          <!-- Input Manual (exibido para rede oculta ou opção customizada) -->
+          <div id="manualSsidContainer" style="display:none; flex-direction:column; gap:4px;">
+            <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">Nome da Rede (SSID Manual):</span>
+            <input type="text" id="manualSsidInput" placeholder="Digite o nome exato da rede (SSID)..." class="search-input" style="font-size:12px;">
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">Senha do Wi-Fi:</span>
+            <div style="display:flex; gap:6px;">
+              <input type="password" id="wifiPassInput" placeholder="Senha WPA2 / WPA3..." class="search-input" style="flex:1; font-size:12px;">
+              <button class="btn-action" type="button" onclick="togglePassVisibility()" style="padding:0 12px; font-size:14px;" id="btnPassToggle">👁</button>
+            </div>
+          </div>
+
+          <button class="btn-action" style="width:100%; padding:12px; background:rgba(115,218,202,0.15); border-color:var(--tokyo-green); color:var(--tokyo-green); font-weight:700; font-size:13px; margin-top:4px; border-radius:8px;" onclick="saveWifiCredentials()">
+            💾 Salvar e Conectar
+          </button>
+        </div>
+
+        <div style="padding-top:10px; border-top:1px solid var(--border); margin-top:8px;">
+          <button class="btn-action" style="width:100%; padding:10px; border-color:rgba(247,118,142,0.6); color:var(--tokyo-red); background:rgba(247,118,142,0.08); font-size:12px; border-radius:8px;" onclick="resetWifi()">
+            🔄 Desconectar e Abrir Ponto de Acesso (Reset NVS)
+          </button>
+        </div>
+      </div>
+
+      <!-- Atualização de Firmware via Wi-Fi (OTA Dual-Slot + Rollback) -->
+      <div class="card" style="border-color: rgba(122,162,247,0.4);">
+        <div class="card-header">
+          <span class="card-title">Atualização Wi-Fi (OTA)</span>
+          <span class="status-pill" id="otaSlotBadge" style="color:var(--tokyo-cyan); border-color:var(--tokyo-cyan); background:rgba(125,207,255,0.1);">SLOT: --</span>
+        </div>
+
+        <div style="background:var(--card-inner); padding:12px; border-radius:10px; border:1px solid var(--border); display:flex; flex-direction:column; gap:7px; font-family:var(--font-mono); font-size:11px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--text-muted);">mDNS Local:</span>
+            <span style="color:var(--tokyo-cyan); font-weight:700;" id="otaMdnsTxt">http://aethersense.local</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--text-muted);">Slot Ativo / Próximo:</span>
+            <span style="color:var(--tokyo-green); font-weight:700;" id="otaSlotsPairTxt">-- → --</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--text-muted);">Versão / Build:</span>
+            <span style="color:var(--text);" id="otaVersionTxt">--</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--text-muted);">Anti-Brick Rollback:</span>
+            <span style="color:var(--tokyo-green);" id="otaRollbackTxt">Validando...</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:var(--text-muted);">Uptime / Heap Livre:</span>
+            <span style="color:var(--text-muted);" id="otaHealthTxt">--</span>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">SENHA ADMIN DO PORTAL (admin):</span>
+            <div style="display:flex; gap:6px;">
+              <input type="password" id="otaPasswordInput" placeholder="Senha admin para autorizar OTA..." class="search-input" style="flex:1; font-size:12px;">
+              <button class="btn-action" type="button" onclick="toggleOtaPassVisibility()" style="padding:0 12px; font-size:14px;" id="btnOtaPassToggle">👁</button>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">IMAGEM .BIN (GERADA VIA save-image):</span>
+            <input type="file" id="otaFileInput" accept=".bin,application/octet-stream" onchange="onOtaFileSelected(this)" class="search-input" style="font-size:11px; padding:8px;">
+            <span id="otaFileInfoTxt" style="font-size:10px; font-family:var(--font-mono); color:var(--text-muted);">Máximo por slot: 1,984 KiB (2,031,616 B)</span>
+          </div>
+
+          <div id="otaProgressWrap" style="display:none; flex-direction:column; gap:6px; background:var(--card-inner); padding:10px; border-radius:8px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; font-size:11px; font-family:var(--font-mono);">
+              <span id="otaProgressStage" style="color:var(--tokyo-cyan);">Enviando firmware...</span>
+              <span id="otaProgressPct" style="color:var(--tokyo-green); font-weight:700;">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="otaProgressBar" style="width:0%; background:var(--tokyo-cyan);"></div></div>
+          </div>
+
+          <button class="btn-action" id="btnOtaUpload" onclick="startOtaUpload()" style="width:100%; padding:12px; background:linear-gradient(135deg, rgba(122,162,247,0.22), rgba(115,218,202,0.18)); border-color:var(--tokyo-blue); color:var(--tokyo-cyan); font-weight:700; font-size:13px; border-radius:8px;">
+            🚀 Enviar Firmware via Wi-Fi
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toastMsg">
+    <span style="width:6px; height:6px; border-radius:50%; background:var(--tokyo-cyan);"></span>
+    <span id="toastText">Sinal Disparado</span>
+  </div>
+
+  <script>
+    // Relógio
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clockDisplay').textContent = 
+        `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    // Navegação por Abas
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        const onclickAttr = b.getAttribute('onclick') || '';
+        b.classList.toggle('active', onclickAttr.includes(`'${tabId}'`));
+      });
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      const activePanel = document.getElementById(tabId);
+      if (activePanel) activePanel.classList.add('active');
+    }
+
+    // Feedback Toast & Haptic
+    let toastTimer;
+    function showToast(msg) {
+      if (navigator.vibrate) navigator.vibrate(25);
+      const t = document.getElementById('toastMsg');
+      document.getElementById('toastText').textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+    }
+
+    function sendIR(codeId, label) {
+      showToast(`IR TX: ${label}`);
+      fetch(`/api/ir/send?code=${codeId}`, { method: 'POST' }).catch(() => {});
+    }
+
+    function testIrCamera() {
+      showToast('🔦 Emitindo IR (2s)... Olhe o LED pela câmera!');
+      fetch('/api/ir/test', { method: 'POST' }).catch(() => {});
+    }
+
+    // Auto-Diagnóstico Óptico do Emissor sem Câmera (Loopback GPIO 9 -> GPIO 8)
+    function runOpticalSelfTest() {
+      const btn = document.getElementById('btnOpticalSelfTest');
+      const box = document.getElementById('opticalResultBox');
+      const msg = document.getElementById('opticalResultMsg');
+      const pulses = document.getElementById('opticalResultPulses');
+      const pill = document.getElementById('opticalPill');
+
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+      btn.innerHTML = '<span>⏳ Emitindo e Validando no VS1838B...</span>';
+      showToast('🔍 Testando emissor IR via loopback óptico...');
+
+      fetch('/api/ir/test/loopback', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.innerHTML = '<span>⚡ Testar Emissor IR (Validação Óptica)</span>';
+          box.style.display = 'flex';
+
+          const isOk = (data.hardware_ok === true || data.success === true || data.status === 'ok') && (data.detected_pulses > 0);
+          if (isOk) {
+            pill.textContent = 'TX & RX 100% OPERANTES';
+            pill.style.color = 'var(--tokyo-green)';
+            pill.style.borderColor = 'var(--tokyo-green)';
+            pill.style.background = 'rgba(115,218,202,0.15)';
+            box.style.background = 'rgba(115,218,202,0.12)';
+            box.style.border = '1px solid var(--tokyo-green)';
+            msg.style.color = 'var(--tokyo-green)';
+            msg.textContent = '✅ Emissor Físico 100% Funcional! Feixe captado pelo sensor.';
+            pulses.style.color = 'var(--text)';
+            pulses.textContent = `${data.detected_pulses} pulsos (${data.latency_us}µs • Q=${data.quality_percent || 0}%)`;
+            showToast('✅ Emissor IR e VS1838B validados opticamente!');
+          } else {
+            pill.textContent = 'SEM RECEPÇÃO (GPIO 8)';
+            pill.style.color = 'var(--tokyo-red)';
+            pill.style.borderColor = 'var(--tokyo-red)';
+            pill.style.background = 'rgba(247,118,142,0.15)';
+            box.style.background = 'rgba(247,118,142,0.12)';
+            box.style.border = '1px solid var(--tokyo-red)';
+            msg.style.color = 'var(--tokyo-red)';
+            msg.textContent = '❌ Nenhum pulso detectado no GPIO 8 (VS1838B aguardando solda ou alinhamento).';
+            pulses.style.color = 'var(--tokyo-red)';
+            pulses.textContent = '0 pulsos';
+            showToast('⚠️ Nenhum feixe detectado pelo VS1838B.');
+          }
+        })
+        .catch(err => {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.innerHTML = '<span>⚡ Testar Emissor IR (Validação Óptica)</span>';
+          showToast('❌ Erro de comunicação com o ESP32.');
+        });
+    }
+
+    // Modo Radar de Alcance no LED RGB
+    let radarPollTimer = null;
+
+    function toggleRadarMode() {
+      const panel = document.getElementById('radarActivePanel');
+      if (panel.style.display === 'block') {
+        stopRadarMode();
+      } else {
+        startRadarMode();
+      }
+    }
+
+    function startRadarMode() {
+      fetch('/api/ir/radar/start', { method: 'POST' })
+        .then(r => r.json())
+        .then(() => {
+          document.getElementById('radarActivePanel').style.display = 'block';
+          document.getElementById('btnRadarToggle').style.display = 'none';
+          document.getElementById('radarCountdownText').textContent = '60s';
+          document.getElementById('radarPulseCount').textContent = 'Aguardando disparo...';
+          document.getElementById('radarQualityBar').style.width = '0%';
+          const qText = document.getElementById('radarQualityText');
+          qText.style.color = 'var(--text-muted)';
+          qText.textContent = 'Aguardando disparos do controle ou app...';
+          document.getElementById('radarIndicatorDot').style.background = 'var(--tokyo-cyan)';
+          showToast('📡 Radar de Alcance Ativo (60s). Observe o LED RGB!');
+          
+          if (radarPollTimer) clearInterval(radarPollTimer);
+          radarPollTimer = setInterval(pollRadarStatus, 400);
+        })
+        .catch(() => showToast('❌ Erro ao ativar modo Radar.'));
+    }
+
+    function pollRadarStatus() {
+      fetch('/api/ir/radar/status')
+        .then(r => r.json())
+        .then(st => {
+          const remaining = (st.remaining_seconds !== undefined) ? st.remaining_seconds : (st.remaining_secs || 0);
+          if (!st.active || remaining <= 0) {
+            stopRadarMode(true);
+            return;
+          }
+          document.getElementById('radarCountdownText').textContent = `${remaining}s`;
+          const quality = (st.latest_quality_percent !== undefined) ? st.latest_quality_percent : (st.last_quality || 0);
+          const jitter = (st.latest_jitter_us !== undefined) ? st.latest_jitter_us : (st.last_jitter_us || 0);
+          const grade = st.latest_grade || st.last_grade || 'off';
+          const captures = st.captures_count || 0;
+          const pulses = st.latest_pulse_count || 0;
+          
+          if (captures > 0 || (quality > 0 && grade !== 'waiting' && grade !== 'off')) {
+            document.getElementById('radarPulseCount').textContent = `#${captures} • ${pulses}p`;
+            const bar = document.getElementById('radarQualityBar');
+            bar.style.width = `${quality}%`;
+            
+            let color = 'var(--tokyo-green)';
+            let label = 'Excelente';
+            if (grade === 'good') { color = 'var(--tokyo-yellow)'; label = 'Bom'; }
+            else if (grade === 'fair') { color = 'var(--tokyo-orange)'; label = 'Regular'; }
+            else if (grade === 'weak') { color = 'var(--tokyo-red)'; label = 'Fraco / Limite'; }
+
+            bar.style.background = color;
+            const qText = document.getElementById('radarQualityText');
+            qText.style.color = color;
+            qText.textContent = `${quality}% (${label}) • Jitter: ±${jitter}µs`;
+            document.getElementById('radarIndicatorDot').style.background = color;
+          }
+        })
+        .catch(() => {});
+    }
+
+    function stopRadarMode(isTimeout = false) {
+      if (radarPollTimer) {
+        clearInterval(radarPollTimer);
+        radarPollTimer = null;
+      }
+      fetch('/api/ir/radar/stop', { method: 'POST' }).catch(() => {});
+      document.getElementById('radarActivePanel').style.display = 'none';
+      document.getElementById('btnRadarToggle').style.display = 'flex';
+      if (isTimeout) {
+        showToast('⏱ Radar de Alcance finalizado por tempo (60s).');
+      } else {
+        showToast('Radar de Alcance desativado.');
+      }
+    }
+
+    // --- MÓDULO APRENDER / GRAVAR CONTROLE REMOTO FÍSICO (GPIO 8) ---
+    let learnPollTimer = null;
+
+    function refreshLearnedBadges() {
+      fetch('/api/ir/learn/list')
+        .then(r => r.json())
+        .then(list => {
+          const container = document.getElementById('learnedBadgesContainer');
+          if (!container) return;
+          container.innerHTML = '';
+          list.forEach(item => {
+            const badge = document.createElement('div');
+            badge.style.display = 'flex';
+            badge.style.justifyContent = 'space-between';
+            badge.style.alignItems = 'center';
+            badge.style.padding = '6px 10px';
+            badge.style.background = 'rgba(255,255,255,0.03)';
+            badge.style.borderRadius = '8px';
+            badge.style.border = '1px solid ' + (item.is_learned ? 'rgba(115,218,202,0.4)' : 'rgba(255,255,255,0.05)');
+            badge.innerHTML = `
+              <span style="font-size:11px; font-weight:600; color:var(--text);">${item.name}</span>
+              <span style="font-size:10px; font-family:var(--font-mono); color:${item.is_learned ? 'var(--tokyo-green)' : 'var(--text-muted)'};">
+                ${item.is_learned ? `✓ Gravado (${item.pulses}p)` : 'Padrão'}
+              </span>
+            `;
+            container.appendChild(badge);
+          });
+        })
+        .catch(() => {});
+    }
+
+    function startIrLearning() {
+      const select = document.getElementById('learnCmdSelect');
+      const cmdId = select.value;
+      const cmdLabel = select.options[select.selectedIndex].text;
+
+      document.getElementById('learnBtnStart').style.display = 'none';
+      document.getElementById('learnListeningBox').style.display = 'block';
+      document.getElementById('learnCapturedBox').style.display = 'none';
+      document.getElementById('learnTargetName').textContent = cmdLabel;
+
+      showToast(`🔴 Modo Gravação: Aponte o controle e aperte "${cmdLabel}"`);
+
+      fetch(`/api/ir/learn/start?cmd=${cmdId}`, { method: 'POST' })
+        .then(() => {
+          if (learnPollTimer) clearInterval(learnPollTimer);
+          let elapsed = 0;
+          learnPollTimer = setInterval(() => {
+            elapsed += 300;
+            fetch('/api/ir/learn/status')
+              .then(r => r.json())
+              .then(status => {
+                if (status.state === 'captured') {
+                  clearInterval(learnPollTimer);
+                  learnPollTimer = null;
+                  document.getElementById('learnListeningBox').style.display = 'none';
+                  document.getElementById('learnCapturedBox').style.display = 'block';
+                  document.getElementById('capturedPulsesText').textContent = `${status.pulse_count} pulsos detectados (${status.carrier_hz} Hz)`;
+                  
+                  // Atualizar Qualidade do Sinal e Jitter
+                  const quality = (status.quality_percent !== undefined) ? status.quality_percent : ((status.quality !== undefined) ? status.quality : 100);
+                  const jitter = (status.jitter_us !== undefined) ? status.jitter_us : 12;
+                  const grade = status.signal_grade || status.grade || 'excellent';
+                  
+                  let gradeColor = 'var(--tokyo-green)';
+                  let gradeText = 'Excelente';
+                  let gradeTip = 'Sinal nítido, alcance ideal';
+                  if (grade === 'good') {
+                    gradeColor = 'var(--tokyo-yellow)';
+                    gradeText = 'Bom';
+                    gradeTip = 'Sinal forte e estável';
+                  } else if (grade === 'fair') {
+                    gradeColor = 'var(--tokyo-orange)';
+                    gradeText = 'Regular';
+                    gradeTip = 'Considere aproximar o controle';
+                  } else if (grade === 'weak') {
+                    gradeColor = 'var(--tokyo-red)';
+                    gradeText = 'Fraco';
+                    gradeTip = 'Limite do alcance ou ruído óptico';
+                  }
+
+                  const badge = document.getElementById('capturedQualityBadge');
+                  if (badge) {
+                    badge.style.color = gradeColor;
+                    badge.textContent = `${quality}% • ${gradeText}`;
+                  }
+                  const bar = document.getElementById('capturedQualityBar');
+                  if (bar) {
+                    bar.style.width = `${quality}%`;
+                    bar.style.background = gradeColor;
+                  }
+                  const jitterEl = document.getElementById('capturedJitterText');
+                  if (jitterEl) jitterEl.textContent = `±${jitter} µs`;
+                  const tipEl = document.getElementById('capturedGradeTip');
+                  if (tipEl) tipEl.textContent = gradeTip;
+
+                  showToast(`✅ Tecla "${cmdLabel}" Capturada (${quality}% • ${gradeText})!`);
+                } else if (status.state === 'timeout' || status.state === 'failed' || elapsed > 16000) {
+                  clearInterval(learnPollTimer);
+                  learnPollTimer = null;
+                  cancelIrLearning(true);
+                  showToast('⚠️ Tempo esgotado para captura de sinal.');
+                }
+              })
+              .catch(() => {});
+          }, 300);
+        })
+        .catch(() => {
+          cancelIrLearning(true);
+          showToast('❌ Falha ao iniciar gravação IR.');
+        });
+    }
+
+    function cancelIrLearning(isTimeout = false) {
+      if (learnPollTimer) {
+        clearInterval(learnPollTimer);
+        learnPollTimer = null;
+      }
+      fetch('/api/ir/learn/cancel', { method: 'POST' }).catch(() => {});
+      document.getElementById('learnListeningBox').style.display = 'none';
+      document.getElementById('learnCapturedBox').style.display = 'none';
+      document.getElementById('learnBtnStart').style.display = 'block';
+      if (!isTimeout) showToast('Gravação cancelada.');
+    }
+
+    function testLearnedIr() {
+      showToast('⚡ Disparando sinal gravado para o robô...');
+      fetch('/api/ir/learn/test', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'ok') {
+            showToast(`🚀 Disparo efetuado (${data.tested_pulses} pulsos)!`);
+          } else {
+            showToast(`⚠️ Erro no disparo: ${data.error || 'desconhecido'}`);
+          }
+        })
+        .catch(() => showToast('❌ Falha ao testar sinal.'));
+    }
+
+    function saveLearnedIr() {
+      fetch('/api/ir/learn/save', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'saved') {
+            showToast(`💾 Tecla salva permanentemente na NVS (${data.pulses} pulsos)!`);
+            document.getElementById('learnCapturedBox').style.display = 'none';
+            document.getElementById('learnBtnStart').style.display = 'block';
+            refreshLearnedBadges();
+          } else {
+            showToast(`⚠️ Falha ao salvar: ${data.error || 'desconhecido'}`);
+          }
+        })
+        .catch(() => showToast('❌ Erro de comunicação ao salvar na NVS.'));
+    }
+
+    // Controle de Limpeza (Mondial)
+    let sessionTimer = null, totalSecs = 25 * 60, remSecs = totalSecs;
+    let isPaused = false;
+
+    function togglePauseResume() {
+      const btn = document.getElementById('btnPauseResume');
+      const phase = document.getElementById('timerPhase');
+      if (!isPaused) {
+        // Pausar
+        isPaused = true;
+        if (sessionTimer) {
+          clearInterval(sessionTimer);
+          sessionTimer = null;
+        }
+        sendIR('ir-msbxqpq9-f99822c9', 'Pausar Robô');
+        btn.innerHTML = '▶ Retomar';
+        btn.style.color = 'var(--tokyo-green)';
+        btn.style.borderColor = 'rgba(115, 218, 202, 0.5)';
+        phase.textContent = '⏸ Limpeza Pausada';
+        phase.style.color = 'var(--tokyo-yellow)';
+        showToast('⏸ Limpeza Pausada (Relógio Congelado)');
+      } else {
+        // Retomar
+        isPaused = false;
+        sendIR('ir-msbxqpq9-f99822c9', 'Retomar Robô');
+        btn.innerHTML = '⏸ Pausar';
+        btn.style.color = 'var(--tokyo-red)';
+        btn.style.borderColor = 'rgba(247, 118, 142, 0.4)';
+        phase.textContent = '🧹 Limpeza em Andamento...';
+        phase.style.color = 'var(--text-muted)';
+        showToast('▶ Limpeza Retomada');
+        startCountdown();
+      }
+    }
+
+    function startCountdown() {
+      if (sessionTimer) clearInterval(sessionTimer);
+      sessionTimer = setInterval(() => {
+        remSecs--;
+        const min = Math.floor(remSecs / 60), sec = remSecs % 60;
+        document.getElementById('timerDigits').textContent = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+        document.getElementById('timerBar').style.width = `${(remSecs / totalSecs) * 100}%`;
+        if (remSecs <= 0) {
+          clearInterval(sessionTimer); sessionTimer = null;
+          isPaused = false;
+          document.getElementById('timerPhase').textContent = '🏠 Retornando à Base...';
+          sendIR('ir-msbxqymm-278361ff', 'Dock Automático');
+          setTimeout(() => {
+            document.getElementById('activeProgress').style.display = 'none';
+            document.getElementById('btnMainClean').style.display = 'flex';
+          }, 6000);
+        }
+      }, 1000);
+    }
+
+    function abortToDock() {
+      if (sessionTimer) {
+        clearInterval(sessionTimer);
+        sessionTimer = null;
+      }
+      isPaused = false;
+      document.getElementById('timerPhase').textContent = '🏠 Retornando à Base...';
+      document.getElementById('timerPhase').style.color = 'var(--tokyo-cyan)';
+      sendIR('ir-msbxqymm-278361ff', 'Voltar ao Dock');
+      setTimeout(() => {
+        document.getElementById('activeProgress').style.display = 'none';
+        document.getElementById('btnMainClean').style.display = 'flex';
+      }, 4000);
+    }
+
+    function toggleCleanSession() {
+      const p = document.getElementById('activeProgress');
+      const b = document.getElementById('btnMainClean');
+      if (sessionTimer || isPaused) {
+        if (sessionTimer) clearInterval(sessionTimer);
+        sessionTimer = null;
+        isPaused = false;
+        p.style.display = 'none';
+        b.style.display = 'flex';
+        return;
+      }
+      isPaused = false;
+      const btn = document.getElementById('btnPauseResume');
+      btn.innerHTML = '⏸ Pausar';
+      btn.style.color = 'var(--tokyo-red)';
+      btn.style.borderColor = 'rgba(247, 118, 142, 0.4)';
+      document.getElementById('timerPhase').textContent = '🧹 Limpeza em Andamento...';
+      document.getElementById('timerPhase').style.color = 'var(--text-muted)';
+
+      sendIR('ir-msbxqpq9-f99822c9', 'Acordar Robô (Pulso 1)');
+      setTimeout(() => sendIR('ir-msbxr6jd-c146967b', 'Iniciar Limpeza (Pulso 2)'), 1500);
+      totalSecs = 25 * 60;
+      remSecs = totalSecs;
+      document.getElementById('timerDigits').textContent = '25:00';
+      document.getElementById('timerBar').style.width = '100%';
+      b.style.display = 'none';
+      p.style.display = 'flex';
+      startCountdown();
+    }
+
+    // Agendamento & Tomada Neo Avant
+    function calculatePlugTimes(departureStr) {
+      if (!departureStr || !departureStr.includes(':')) return { on: '09:55', off: '12:30' };
+      const [h, m] = departureStr.split(':').map(Number);
+      let totalMins = (h || 0) * 60 + (m || 0);
+      
+      let onMins = (totalMins - 5 + 1440) % 1440;
+      let onH = String(Math.floor(onMins / 60)).padStart(2, '0');
+      let onM = String(onMins % 60).padStart(2, '0');
+      
+      let offMins = (totalMins + 150) % 1440;
+      let offH = String(Math.floor(offMins / 60)).padStart(2, '0');
+      let offM = String(offMins % 60).padStart(2, '0');
+      
+      return { on: `${onH}:${onM}`, off: `${offH}:${offM}` };
+    }
+
+    function onScheduleTimeChange() {
+      const departure = document.getElementById('schedTimeInput').value;
+      const times = calculatePlugTimes(departure);
+      document.getElementById('plugOnTxt').textContent = `Liga: ${times.on}`;
+      document.getElementById('plugOffTxt').textContent = `Desliga: ${times.off}`;
+    }
+
+    function saveSchedule() {
+      const enabled = document.getElementById('schedEnabledToggle').checked;
+      const departure = document.getElementById('schedTimeInput').value || '10:00';
+      const command = document.getElementById('schedCommandSelect').value || 'auto';
+      const dock_after_mins = parseInt(document.getElementById('schedDockSelect').value || '0', 10) || 0;
+      const times = calculatePlugTimes(departure);
+      const payload = {
+        enabled,
+        departure,
+        command,
+        dock_after_mins,
+        plug_on: times.on,
+        plug_off: times.off
+      };
+      showToast('💾 Gravando agendamento na NVS...');
+      fetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Falha');
+        return data;
+      })
+      .then(data => {
+        if (data.schedule) {
+          document.getElementById('plugOnTxt').textContent = `Liga: ${data.schedule.plug_on}`;
+          document.getElementById('plugOffTxt').textContent = `Desliga: ${data.schedule.plug_off}`;
+        }
+        showToast(enabled ? '⏰ Agendamento ativado na NVS!' : '💾 Agendamento salvo (pausado)');
+      })
+      .catch(err => showToast(`❌ Erro: ${err.message}`));
+    }
+
+    function applyScheduleStatusUi(st) {
+      if (!st) return;
+      const badge = document.getElementById('ntpSyncBadge');
+      const clockTxt = document.getElementById('schedClockStatus');
+      const lastRunTxt = document.getElementById('schedLastRunTxt');
+      if (st.ntp_synced) {
+        badge.textContent = `NTP OK • ${st.local_time || '--:--'}`;
+        badge.style.color = 'var(--tokyo-green)';
+        badge.style.borderColor = 'rgba(115,218,202,0.4)';
+        badge.style.background = 'rgba(115,218,202,0.12)';
+      } else {
+        badge.textContent = 'AGUARDANDO NTP';
+        badge.style.color = 'var(--tokyo-orange)';
+        badge.style.borderColor = 'rgba(255,158,100,0.35)';
+        badge.style.background = 'rgba(255,158,100,0.1)';
+      }
+      if (clockTxt) {
+        clockTxt.textContent = `Relógio ESP (${st.timezone || 'UTC-3'}): ${st.local_time || '--:--'}`;
+      }
+      if (lastRunTxt) {
+        lastRunTxt.textContent = st.last_fired_at
+          ? `Último disparo: ${st.last_fired_at} (${st.last_fired_command || '--'})`
+          : 'Último disparo automático: nenhum';
+      }
+    }
+
+    function loadSchedule() {
+      fetch('/api/schedule')
+        .then(r => r.json())
+        .then(data => {
+          if (!data) return;
+          document.getElementById('schedEnabledToggle').checked = Boolean(data.enabled);
+          if (data.departure) {
+            document.getElementById('schedTimeInput').value = data.departure;
+            const times = calculatePlugTimes(data.departure);
+            document.getElementById('plugOnTxt').textContent = `Liga: ${data.plug_on || times.on}`;
+            document.getElementById('plugOffTxt').textContent = `Desliga: ${data.plug_off || times.off}`;
+          }
+          if (data.command) {
+            document.getElementById('schedCommandSelect').value = data.command;
+          }
+          if (data.dock_after_mins !== undefined) {
+            document.getElementById('schedDockSelect').value = String(data.dock_after_mins);
+          }
+          applyScheduleStatusUi(data.status);
+        })
+        .catch(() => {});
+    }
+
+    function syncScheduleClock() {
+      const epoch_secs = Math.floor(Date.now() / 1000);
+      fetch('/api/schedule/sync_time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ epoch_secs })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          showToast(`🕒 Relógio do ESP32 ajustado: ${data.local_time}`);
+          loadSchedule();
+        } else {
+          showToast('❌ Falha ao ajustar relógio.');
+        }
+      })
+      .catch(() => showToast('❌ Erro de comunicação no ajuste de hora.'));
+    }
+
+    // Auxiliares Hex <-> RGB
+    function hexToRgb(hex) {
+      if (!hex || hex.length < 7) return [189, 147, 249];
+      return [
+        parseInt(hex.slice(1,3), 16) || 0,
+        parseInt(hex.slice(3,5), 16) || 0,
+        parseInt(hex.slice(5,7), 16) || 0
+      ];
+    }
+    function rgbToHex(r, g, b) {
+      const toH = (x) => {
+        const h = Math.max(0, Math.min(255, x || 0)).toString(16);
+        return h.length === 1 ? '0' + h : h;
+      };
+      return '#' + toH(r) + toH(g) + toH(b);
+    }
+
+    // Configuração do LED RGB WS2812 (Dois Toggles: Standby e Eventos)
+    let ledConfig = {
+      enabled: true,
+      standby_enabled: false,
+      events_enabled: true,
+      brightness: 75,
+      standby: [189, 147, 249],
+      ir_tx: [80, 250, 123],
+      connecting: [139, 233, 253],
+      ap_mode: [255, 184, 108],
+      error: [255, 85, 85]
+    };
+
+    const PRESETS = {
+      dracula: {
+        standby: [189, 147, 249],    // Dracula Purple
+        ir_tx: [80, 250, 123],       // Dracula Green
+        connecting: [139, 233, 253], // Dracula Cyan
+        ap_mode: [255, 184, 108],    // Dracula Orange
+        error: [255, 85, 85]         // Dracula Red
+      },
+      tokyo: {
+        standby: [122, 162, 247],    // Tokyo Blue
+        ir_tx: [115, 218, 202],      // Tokyo Emerald
+        connecting: [224, 175, 104], // Tokyo Yellow/Amber
+        ap_mode: [187, 154, 247],    // Tokyo Purple
+        error: [247, 118, 142]       // Tokyo Red
+      }
+    };
+
+    function loadLedConfig() {
+      fetch('/api/led/config')
+        .then(r => r.json())
+        .then(cfg => {
+          if (!cfg) return;
+          ledConfig = Object.assign(ledConfig, cfg);
+          document.getElementById('ledStandbyToggle').checked = !!cfg.standby_enabled;
+          document.getElementById('ledEventsToggle').checked = cfg.events_enabled !== false;
+          document.getElementById('ledStandbyTxt').textContent = cfg.standby_enabled ? 'Aceso contínuo em repouso' : 'Apagado em repouso (Discreto)';
+          document.getElementById('ledEventsTxt').textContent = (cfg.events_enabled !== false) ? 'Pulsos ativos (IR, Wi-Fi, Erros)' : 'Pulsos silenciados';
+          document.getElementById('ledBrightSlider').value = cfg.brightness || 75;
+          document.getElementById('ledBrightTxt').textContent = `${cfg.brightness || 75}%`;
+          
+          if (cfg.standby) document.getElementById('evtColor_standby').value = rgbToHex(...cfg.standby);
+          if (cfg.ir_tx) document.getElementById('evtColor_ir_tx').value = rgbToHex(...cfg.ir_tx);
+          if (cfg.connecting) document.getElementById('evtColor_connecting').value = rgbToHex(...cfg.connecting);
+          if (cfg.ap_mode) document.getElementById('evtColor_ap_mode').value = rgbToHex(...cfg.ap_mode);
+          if (cfg.error) document.getElementById('evtColor_error').value = rgbToHex(...cfg.error);
+        })
+        .catch(() => {});
+    }
+
+    function updateLedToggles() {
+      ledConfig.standby_enabled = document.getElementById('ledStandbyToggle').checked;
+      ledConfig.events_enabled = document.getElementById('ledEventsToggle').checked;
+      ledConfig.enabled = ledConfig.standby_enabled || ledConfig.events_enabled;
+      document.getElementById('ledStandbyTxt').textContent = ledConfig.standby_enabled ? 'Aceso contínuo em repouso' : 'Apagado em repouso (Discreto)';
+      document.getElementById('ledEventsTxt').textContent = ledConfig.events_enabled ? 'Pulsos ativos (IR, Wi-Fi, Erros)' : 'Pulsos silenciados';
+      saveLedConfig(false);
+    }
+
+    function updateLedBrightness(val) {
+      ledConfig.brightness = parseInt(val);
+      document.getElementById('ledBrightTxt').textContent = `${val}%`;
+    }
+
+    function applyPreset(name) {
+      const p = PRESETS[name];
+      if (!p) return;
+      document.getElementById('evtColor_standby').value = rgbToHex(...p.standby);
+      document.getElementById('evtColor_ir_tx').value = rgbToHex(...p.ir_tx);
+      document.getElementById('evtColor_connecting').value = rgbToHex(...p.connecting);
+      document.getElementById('evtColor_ap_mode').value = rgbToHex(...p.ap_mode);
+      document.getElementById('evtColor_error').value = rgbToHex(...p.error);
+      showToast(name === 'dracula' ? '🧛 Cores Dracula Aplicadas' : '🌃 Cores Tokyo Night Aplicadas');
+      saveLedConfig(true);
+    }
+
+    function saveLedConfig(notify = true) {
+      ledConfig.standby_enabled = document.getElementById('ledStandbyToggle').checked;
+      ledConfig.events_enabled = document.getElementById('ledEventsToggle').checked;
+      ledConfig.enabled = ledConfig.standby_enabled || ledConfig.events_enabled;
+      ledConfig.brightness = parseInt(document.getElementById('ledBrightSlider').value);
+      ledConfig.standby = hexToRgb(document.getElementById('evtColor_standby').value);
+      ledConfig.ir_tx = hexToRgb(document.getElementById('evtColor_ir_tx').value);
+      ledConfig.connecting = hexToRgb(document.getElementById('evtColor_connecting').value);
+      ledConfig.ap_mode = hexToRgb(document.getElementById('evtColor_ap_mode').value);
+      ledConfig.error = hexToRgb(document.getElementById('evtColor_error').value);
+
+      fetch('/api/led/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ledConfig)
+      })
+      .then(r => r.json())
+      .then(() => {
+        if (notify) showToast('💾 Cores salvas na memória NVS!');
+      })
+      .catch(() => {
+        if (notify) showToast('Erro ao gravar cores na NVS');
+      });
+    }
+
+    // Catálogo Online & Gerenciador de Dispositivos Dinâmicos
+    const CATALOG_DATA = [
+      {
+        id: "samsung_tv",
+        name: "Samsung Smart TV (BN59)",
+        category: "TVs",
+        protocol: "Samsung32 • 38 kHz",
+        icon: "📺",
+        commands: [
+          { id: "power", label: "⏻ Power", color: "var(--tokyo-red)" },
+          { id: "mute", label: "🔇 Mute" },
+          { id: "vol_up", label: "VOL ▲" },
+          { id: "vol_down", label: "VOL ▼" },
+          { id: "ch_up", label: "CH ▲" },
+          { id: "ch_down", label: "CH ▼" },
+          { id: "home", label: "🏠 Home" },
+          { id: "source", label: "🔌 Entrada" }
+        ]
+      },
+      {
+        id: "lg_tv",
+        name: "LG Smart TV (Magic Remote)",
+        category: "TVs",
+        protocol: "NEC Extended • 38 kHz",
+        icon: "📺",
+        commands: [
+          { id: "power", label: "⏻ Power", color: "var(--tokyo-red)" },
+          { id: "mute", label: "🔇 Mute" },
+          { id: "vol_up", label: "VOL ▲" },
+          { id: "vol_down", label: "VOL ▼" },
+          { id: "home", label: "🏠 Home" },
+          { id: "back", label: "↩ Voltar" }
+        ]
+      },
+      {
+        id: "midea_ac",
+        name: "Midea Split R51M",
+        category: "Air_Conditioners",
+        protocol: "RAW 48-bit • Climatização",
+        icon: "❄️",
+        commands: [
+          { id: "power", label: "⏻ Ligar/Desl", color: "var(--tokyo-cyan)" },
+          { id: "temp_up", label: "▲ Temp (+)" },
+          { id: "temp_down", label: "▼ Temp (-)" },
+          { id: "cool", label: "❄️ Frio" },
+          { id: "fan", label: "🌀 Ventilar" },
+          { id: "dry", label: "💧 Desumid." }
+        ]
+      },
+      {
+        id: "gree_ac",
+        name: "Gree Eco Garden",
+        category: "Air_Conditioners",
+        protocol: "Gree YAA1FB • 38 kHz",
+        icon: "❄️",
+        commands: [
+          { id: "power", label: "⏻ Ligar/Desl", color: "var(--tokyo-cyan)" },
+          { id: "temp_up", label: "▲ Temp (+)" },
+          { id: "temp_down", label: "▼ Temp (-)" },
+          { id: "turbo", label: "⚡ Turbo" }
+        ]
+      },
+      {
+        id: "mondial_fan",
+        name: "Ventilador Mondial Turbo",
+        category: "Fans",
+        protocol: "NEC Standard • 38 kHz",
+        icon: "🌀",
+        commands: [
+          { id: "power", label: "⏻ Ligar/Desl" },
+          { id: "speed", label: "⚡ Velocidade" },
+          { id: "timer", label: "⏱ Timer" }
+        ]
+      }
+    ];
+
+    let currentCatalogCategory = 'all';
+
+    function getCustomDevices() {
+      try {
+        return JSON.parse(localStorage.getItem('aethersense_custom_devices') || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function saveCustomDevices(devices) {
+      localStorage.setItem('aethersense_custom_devices', JSON.stringify(devices));
+      renderCustomTabs();
+    }
+
+    function selectCat(cat) {
+      currentCatalogCategory = cat;
+      document.querySelectorAll('#catChipsContainer .chip').forEach(c => {
+        const text = c.getAttribute('onclick') || '';
+        c.classList.toggle('active', text.includes(`'${cat}'`));
+      });
+      filterCatalog();
+    }
+
+    function filterCatalog() {
+      const term = (document.getElementById('catalogSearch').value || '').toLowerCase().trim();
+      const list = document.getElementById('catalogList');
+      list.innerHTML = '';
+
+      const filtered = CATALOG_DATA.filter(item => {
+        const matchCat = (currentCatalogCategory === 'all' || item.category === currentCatalogCategory);
+        const matchTerm = !term || item.name.toLowerCase().includes(term) || item.protocol.toLowerCase().includes(term);
+        return matchCat && matchTerm;
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<div style="font-size:12px; color:var(--text-muted); padding:10px; text-align:center;">Nenhum dispositivo encontrado no catálogo.</div>';
+        return;
+      }
+
+      const activeCustom = getCustomDevices();
+
+      filtered.forEach(item => {
+        const isAdded = activeCustom.some(d => d.id === item.id);
+        const card = document.createElement('div');
+        card.style.cssText = 'background:var(--card-inner); padding:10px; border-radius:8px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:8px;';
+        
+        card.innerHTML = `
+          <div>
+            <div style="font-size:13px; font-weight:600;">${item.icon} ${item.name}</div>
+            <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">${item.protocol}</div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-action" style="color:var(--tokyo-cyan); border-color:var(--tokyo-cyan); padding:5px 8px; font-size:11px;" onclick="testCatalogCommand('${item.name}')">⚡ Testar</button>
+            <button class="btn-action" style="${isAdded ? 'color:var(--tokyo-yellow); border-color:var(--tokyo-yellow);' : 'color:var(--tokyo-green); border-color:var(--tokyo-green);'} padding:5px 8px; font-size:11px; font-weight:700;" onclick="addDeviceToMural('${item.id}')">
+              ${isAdded ? '✓ Aberto' : '➕ Adicionar'}
+            </button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function testCatalogCommand(name) {
+      showToast(`⚡ Pulso teste: ${name}`);
+      testIrCamera();
+    }
+
+    function addDeviceToMural(devId) {
+      const dev = CATALOG_DATA.find(d => d.id === devId);
+      if (!dev) return;
+      const list = getCustomDevices();
+      if (!list.some(d => d.id === dev.id)) {
+        list.push(dev);
+        saveCustomDevices(list);
+        showToast(`✅ ${dev.name} adicionado ao Mural!`);
+      }
+      switchTab(`tab-custom-${dev.id}`);
+      filterCatalog();
+    }
+
+    function removeDeviceFromMural(devId) {
+      if (confirm('Deseja remover este dispositivo do seu Mural?')) {
+        let list = getCustomDevices();
+        list = list.filter(d => d.id !== devId);
+        saveCustomDevices(list);
+        showToast('Dispositivo removido do Mural');
+        switchTab('tab-robot');
+        filterCatalog();
+      }
+    }
+
+    function renderCustomTabs() {
+      const tabBtnsContainer = document.getElementById('dynamicTabButtons');
+      const panelsContainer = document.getElementById('dynamicPanelsContainer');
+      tabBtnsContainer.innerHTML = '';
+      panelsContainer.innerHTML = '';
+
+      const devices = getCustomDevices();
+      devices.forEach(dev => {
+        const tabId = `tab-custom-${dev.id}`;
+        
+        // Botão na barra superior
+        const btn = document.createElement('button');
+        btn.className = 'tab-btn';
+        btn.id = `tabbtn-${dev.id}`;
+        btn.setAttribute('onclick', `switchTab('${tabId}')`);
+        btn.textContent = `${dev.icon || '📱'} ${dev.name.split(' ')[0]}`;
+        tabBtnsContainer.appendChild(btn);
+
+        // Painel do dispositivo
+        const panel = document.createElement('div');
+        panel.className = 'view-panel';
+        panel.id = tabId;
+
+        let commandsHtml = '';
+        (dev.commands || []).forEach(cmd => {
+          commandsHtml += `
+            <button class="btn-action" style="${cmd.color ? 'color:' + cmd.color + '; border-color:' + cmd.color + ';' : ''} font-weight:600; padding:12px 8px;" onclick="sendCustomCommand('${dev.name}', '${cmd.label}')">
+              ${cmd.label}
+            </button>
+          `;
+        });
+
+        panel.innerHTML = `
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">${dev.icon || '📱'} ${dev.name}</span>
+              <span class="status-pill" style="color:var(--tokyo-cyan);">${dev.protocol || 'IR 38 kHz'}</span>
+            </div>
+            <div class="grid-2" style="margin-top:4px;">
+              ${commandsHtml}
+            </div>
+            <div style="border-top:1px solid var(--border); padding-top:10px; margin-top:8px;">
+              <button class="btn-action" style="width:100%; border-color:rgba(247,118,142,0.6); color:var(--tokyo-red); padding:8px; font-size:11px;" onclick="removeDeviceFromMural('${dev.id}')">
+                🗑️ Remover ${dev.name} do Mural
+              </button>
+            </div>
+          </div>
+        `;
+        panelsContainer.appendChild(panel);
+      });
+    }
+
+    function sendCustomCommand(devName, cmdLabel) {
+      showToast(`TX [${devName}]: ${cmdLabel}`);
+      testIrCamera();
+    }
+
+    function importJsonDirect() {
+      const text = document.getElementById('jsonTextInput').value.trim();
+      if (!text) {
+        alert('Cole a estrutura JSON do controle antes de importar.');
+        return;
+      }
+      try {
+        const parsed = JSON.parse(text);
+        if (!parsed.name) throw new Error('Campo "name" obrigatório');
+        const devId = 'custom_' + Date.now();
+        const newDev = {
+          id: devId,
+          name: parsed.name,
+          category: parsed.category || 'Custom',
+          protocol: parsed.protocol || 'Personalizado • 38 kHz',
+          icon: parsed.icon || '📱',
+          commands: parsed.commands || [
+            { id: "power", label: "⏻ Power" },
+            { id: "cmd1", label: "Comando 1" }
+          ]
+        };
+        const list = getCustomDevices();
+        list.push(newDev);
+        saveCustomDevices(list);
+        document.getElementById('jsonTextInput').value = '';
+        showToast(`✅ '${newDev.name}' importado com sucesso!`);
+        switchTab(`tab-custom-${devId}`);
+      } catch (err) {
+        alert('Erro ao interpretar JSON:\n' + err.message);
+      }
+    }
+
+    function loadJsonFromFile(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('jsonTextInput').value = e.target.result;
+        importJsonDirect();
+      };
+      reader.readAsText(file);
+    }
+
+    // Wi-Fi Scanner & Gerenciador
+    let scannedList = [];
+
+    function scanWifiNetworks() {
+      const sel = document.getElementById('wifiSsidSelect');
+      sel.innerHTML = '<option value="" disabled selected>🔍 Escaneando redes Wi-Fi...</option>';
+      fetch('/api/wifi/scan')
+        .then(r => r.json())
+        .then(nets => {
+          scannedList = nets || [];
+          sel.innerHTML = '';
+          if (scannedList.length === 0) {
+            sel.innerHTML = '<option value="__custom__" selected>✏️ Nenhuma rede encontrada - Digitar Manualmente</option>';
+            document.getElementById('manualSsidContainer').style.display = 'flex';
+            return;
+          }
+
+          const defaultOpt = document.createElement('option');
+          defaultOpt.value = '';
+          defaultOpt.textContent = `📋 Selecione uma rede (${scannedList.length} encontradas)...`;
+          defaultOpt.disabled = true;
+          defaultOpt.selected = true;
+          sel.appendChild(defaultOpt);
+
+          scannedList.forEach(n => {
+            const opt = document.createElement('option');
+            opt.value = n.ssid;
+            const signalBar = n.rssi >= -60 ? '📶 Forte' : (n.rssi >= -75 ? '📶 Médio' : '📶 Fraco');
+            opt.textContent = `${n.ssid} (${signalBar}, ${n.rssi} dBm, Ch ${n.channel})`;
+            sel.appendChild(opt);
+          });
+
+          const customOpt = document.createElement('option');
+          customOpt.value = '__custom__';
+          customOpt.textContent = '✏️ Outra rede / Digitar Manualmente (Oculta)...';
+          sel.appendChild(customOpt);
+          showToast(`🔍 ${scannedList.length} redes Wi-Fi encontradas`);
+        })
+        .catch(() => {
+          sel.innerHTML = '<option value="__custom__" selected>✏️ Digitar Manualmente...</option>';
+          document.getElementById('manualSsidContainer').style.display = 'flex';
+        });
+    }
+
+    function onSsidSelectChange() {
+      const val = document.getElementById('wifiSsidSelect').value;
+      const manualCont = document.getElementById('manualSsidContainer');
+      if (val === '__custom__') {
+        manualCont.style.display = 'flex';
+        document.getElementById('manualSsidInput').focus();
+      } else {
+        manualCont.style.display = 'none';
+      }
+    }
+
+    function togglePassVisibility() {
+      const p = document.getElementById('wifiPassInput');
+      const b = document.getElementById('btnPassToggle');
+      if (p.type === 'password') {
+        p.type = 'text';
+        b.textContent = '🔒';
+      } else {
+        p.type = 'password';
+        b.textContent = '👁';
+      }
+    }
+
+    function saveWifiCredentials() {
+      const selVal = document.getElementById('wifiSsidSelect').value;
+      let ssid = selVal;
+      if (selVal === '__custom__' || !selVal) {
+        ssid = document.getElementById('manualSsidInput').value.trim();
+      }
+      const password = document.getElementById('wifiPassInput').value;
+
+      if (!ssid) {
+        alert('Por favor, selecione uma rede ou digite o SSID.');
+        return;
+      }
+
+      showToast(`💾 Gravando rede: ${ssid}...`);
+      fetch('/api/wifi/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ssid, password })
+      })
+      .then(r => r.json())
+      .then(() => {
+        alert(`Rede Wi-Fi salva com sucesso!\n\nO ESP32 está reiniciando para conectar em: "${ssid}".\n\nSe o seu smartphone estava conectado ao ponto AetherSense-Config, reconecte à rede "${ssid}".`);
+      })
+      .catch(() => {
+        alert('Comando enviado! O ESP32 está reiniciando para conectar na nova rede.');
+      });
+    }
+
+    function resetWifi() {
+      if (confirm('Deseja desconectar da rede atual e reiniciar no Portal Cativo para escolher outra rede?')) {
+        showToast('🔄 Resetando Wi-Fi...');
+        fetch('/api/wifi/reset', { method: 'POST' })
+          .then(r => r.json())
+          .then(() => {
+            alert('O ESP32 está reiniciando!\n\n1. Conecte-se à rede Wi-Fi: AetherSense-Config\n2. Senha WPA2 / Admin: PIN do dispositivo (Aether#XXXXXX! - ver etiqueta ou serial)\n3. Acesse: http://192.168.71.1');
+          })
+          .catch(() => {
+            alert('Comando enviado! Conecte-se em AetherSense-Config para reconfigurar.');
+          });
+      }
+    }
+
+    const MAX_OTA_BYTES = 2031616;
+
+    function toggleOtaPassVisibility() {
+      const p = document.getElementById('otaPasswordInput');
+      const b = document.getElementById('btnOtaPassToggle');
+      if (p.type === 'password') {
+        p.type = 'text';
+        b.textContent = '🔒';
+      } else {
+        p.type = 'password';
+        b.textContent = '👁';
+      }
+    }
+
+    function onOtaFileSelected(input) {
+      const info = document.getElementById('otaFileInfoTxt');
+      const file = input.files && input.files[0];
+      if (!file) {
+        info.style.color = 'var(--text-muted)';
+        info.textContent = 'Máximo por slot: 1,984 KiB (2,031,616 B)';
+        return;
+      }
+      const kib = (file.size / 1024).toFixed(1);
+      if (file.size > MAX_OTA_BYTES) {
+        info.style.color = 'var(--tokyo-red)';
+        info.textContent = `❌ ${file.name} (${kib} KiB) excede o limite de 1,984 KiB!`;
+        return;
+      }
+      file.slice(0, 1).arrayBuffer().then(buf => {
+        const magic = new Uint8Array(buf)[0];
+        if (magic !== 0xE9) {
+          info.style.color = 'var(--tokyo-red)';
+          info.textContent = `❌ Header inválido (0x${(magic || 0).toString(16).toUpperCase()}, esperado 0xE9). Use save-image!`;
+        } else {
+          info.style.color = 'var(--tokyo-green)';
+          info.textContent = `✅ ${file.name} (${kib} KiB • Header ESP-IDF válido)`;
+        }
+      });
+    }
+
+    function startOtaUpload() {
+      const pass = document.getElementById('otaPasswordInput').value;
+      const input = document.getElementById('otaFileInput');
+      const file = input.files && input.files[0];
+      if (!pass) {
+        showToast('🔑 Informe a senha de admin para autorizar o OTA.');
+        document.getElementById('otaPasswordInput').focus();
+        return;
+      }
+      if (!file) {
+        showToast('📁 Selecione o arquivo .bin do firmware.');
+        return;
+      }
+      if (file.size > MAX_OTA_BYTES) {
+        showToast('❌ Arquivo excede 1,984 KiB do slot OTA.');
+        return;
+      }
+
+      const btn = document.getElementById('btnOtaUpload');
+      const wrap = document.getElementById('otaProgressWrap');
+      const bar = document.getElementById('otaProgressBar');
+      const pct = document.getElementById('otaProgressPct');
+      const stage = document.getElementById('otaProgressStage');
+      const previousSlot = document.getElementById('otaSlotBadge').textContent;
+
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+      wrap.style.display = 'flex';
+      bar.style.width = '0%';
+      bar.style.background = 'var(--tokyo-cyan)';
+      pct.textContent = '0%';
+      stage.textContent = 'Enviando firmware...';
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/ota/upload', true);
+      xhr.setRequestHeader('Authorization', 'Basic ' + btoa('admin:' + pass));
+      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+
+      xhr.upload.onprogress = (ev) => {
+        if (ev.lengthComputable) {
+          const p = Math.min(99, Math.round((ev.loaded / ev.total) * 100));
+          bar.style.width = p + '%';
+          pct.textContent = p + '%';
+          stage.textContent = p >= 99 ? 'Gravando flash OTA...' : `Enviando (${(ev.loaded / 1024).toFixed(0)} KiB)...`;
+        }
+      };
+
+      xhr.onload = () => {
+        let resp = {};
+        try { resp = JSON.parse(xhr.responseText || '{}'); } catch {}
+        if (xhr.status === 200 && resp.status === 'ok') {
+          bar.style.width = '100%';
+          bar.style.background = 'var(--tokyo-green)';
+          pct.textContent = '100%';
+          stage.textContent = `Gravado em ${resp.next_slot}! Reiniciando ESP32...`;
+          showToast('🚀 OTA gravado! Aguardando reconexão...');
+          pollOtaReconnect(previousSlot);
+        } else {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          bar.style.background = 'var(--tokyo-red)';
+          stage.textContent = resp.error || `Erro HTTP ${xhr.status}`;
+          showToast('❌ ' + (resp.error || `Falha OTA (${xhr.status})`));
+        }
+      };
+
+      xhr.onerror = () => {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        bar.style.background = 'var(--tokyo-red)';
+        stage.textContent = 'Falha de rede durante o upload.';
+        showToast('❌ Erro de rede no OTA.');
+      };
+
+      xhr.send(file);
+    }
+
+    function pollOtaReconnect(previousSlot) {
+      let tries = 0;
+      const stage = document.getElementById('otaProgressStage');
+      const btn = document.getElementById('btnOtaUpload');
+      const timer = setInterval(() => {
+        tries += 1;
+        if (tries > 40) {
+          clearInterval(timer);
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          stage.textContent = 'Tempo limite de reconexão atingido. Recarregue a página.';
+          return;
+        }
+        fetch('/api/status', { cache: 'no-store' })
+          .then(r => r.json())
+          .then(s => {
+            if (s && s.status === 'online') {
+              clearInterval(timer);
+              btn.disabled = false;
+              btn.style.opacity = '1';
+              loadSystemStatus();
+              loadSchedule();
+              stage.textContent = `Online em ${s.active_slot || 'novo slot'}! (${s.app_version || ''})`;
+              showToast(`✅ Firmware ativo em ${s.active_slot || 'novo slot'} (${previousSlot} atualizado)!`);
+            }
+          })
+          .catch(() => {});
+      }, 1500);
+    }
+
+    function loadSystemStatus() {
+      fetch('/api/status')
+        .then(r => r.json())
+        .then(s => {
+          if (s.ip && s.ip !== '') {
+            document.getElementById('wifiCurIp').textContent = s.ip;
+          }
+          const slotLabel = s.active_slot ? ` • ${s.active_slot}` : '';
+          if (s.connected_ssid && s.connected_ssid !== '') {
+            document.getElementById('wifiCurSsid').textContent = s.connected_ssid;
+            document.getElementById('connStatus').textContent = `ONLINE • ${s.connected_ssid}${slotLabel}`;
+          }
+          if (s.active_slot) {
+            document.getElementById('otaSlotBadge').textContent = `SLOT: ${s.active_slot.toUpperCase()}`;
+            document.getElementById('otaSlotsPairTxt').textContent = `${s.active_slot} → ${s.next_slot || '--'}`;
+          }
+          if (s.app_version || s.build_hash) {
+            document.getElementById('otaVersionTxt').textContent = `v${s.app_version || '?'} (${s.build_hash || '--'})`;
+          }
+          if (s.mdns_host) {
+            document.getElementById('otaMdnsTxt').textContent = `http://${s.mdns_host}`;
+          }
+          const rb = document.getElementById('otaRollbackTxt');
+          if (rb) {
+            rb.textContent = s.boot_validated ? 'Confirmado (Anti-Brick OK)' : 'Aguardando confirmação';
+            rb.style.color = s.boot_validated ? 'var(--tokyo-green)' : 'var(--tokyo-orange)';
+          }
+          const ht = document.getElementById('otaHealthTxt');
+          if (ht) {
+            const up = s.uptime_secs !== undefined ? `${s.uptime_secs}s` : '--';
+            const heap = s.free_heap_bytes ? `${Math.round(s.free_heap_bytes / 1024)} KiB` : '--';
+            ht.textContent = `${up} • ${heap}`;
+          }
+          if (s.ntp_synced !== undefined) {
+            applyScheduleStatusUi({ ntp_synced: s.ntp_synced, local_time: s.local_time, timezone: 'BRT UTC-3' });
+          }
+        })
+        .catch(() => {});
+    }
+
+    // Inicialização ao carregar a página
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCustomTabs();
+      filterCatalog();
+      loadSchedule();
+      loadLedConfig();
+      scanWifiNetworks();
+      loadSystemStatus();
+      refreshLearnedBadges();
+      setInterval(loadSystemStatus, 15000);
+    });
+  </script>
+</body>
+</html>

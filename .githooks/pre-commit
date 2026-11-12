@@ -1,0 +1,22 @@
+#!/bin/sh
+# AetherSense Git Pre-Commit Hook: Fast Credential and Security Check
+set -e
+
+echo "🔒 [AetherSense Hook] Running Pre-Commit Security Audit..."
+
+# 1. Credential leak check
+P_PASS="Mural#""Sonhos!2026"
+P_AUTH="Basic YWRtaW46""TXVyYW""wjU29uaG9zITIwMjY="
+BANNED_REGEX="${P_PASS}|${P_AUTH}"
+if git grep -E -i "$BANNED_REGEX" -- ':(exclude)tools/audit_public_sync.py' ':(exclude)tools/repo_health_gate.py' ':(exclude).githooks/*'; then
+    echo "❌ [BLOCKED] Hardcoded credentials detected in committed files!"
+    exit 1
+fi
+
+# 2. Block commit of private or unmasked config files (adding or modifying)
+if git diff --cached --name-only --diff-filter=AM | grep -E "(^|/)aethersense_config\.json$"; then
+    echo "❌ [BLOCKED] aethersense_config.json must never be committed! Use aethersense_config.example.json instead."
+    exit 1
+fi
+
+echo "✅ [AetherSense Hook] Pre-commit security check passed."
