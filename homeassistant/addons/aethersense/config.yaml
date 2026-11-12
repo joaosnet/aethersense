@@ -2,7 +2,7 @@ name: AetherSense
 version: "0.2.0"
 slug: aethersense
 description: AetherSense CSI sensing backend with MQTT discovery for Home Assistant automations.
-url: https://github.com/joaod/aethersense
+url: https://github.com/joaosnet/aethersense
 arch:
   - amd64
   - aarch64
@@ -25,7 +25,7 @@ ports_description:
   5005/udp: UDP CSI ingest from ESP32 devices (broadcast; requires host_network)
 watchdog: http://[HOST]:[PORT:8000]/api/health
 init: true
-image: ghcr.io/joaod/aethersense-server
+image: ghcr.io/joaosnet/aethersense-server
 options:
   host: 0.0.0.0
   port: 8000

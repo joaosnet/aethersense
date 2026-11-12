@@ -2,214 +2,147 @@
   <img src="frontend/public/logo/logo_inicial.png" alt="AetherSense" width="520">
 </p>
 
+<p align="center">
+  <strong>English (USD $)</strong> ·
+  <a href="README.pt-BR.md">Português (BR · BRL R$)</a> ·
+  <a href="README.es.md">Español (EUR € / USD $)</a> ·
+  <a href="README.de.md">Deutsch (EUR €)</a>
+</p>
+
 # AetherSense
 
-AetherSense é uma plataforma experimental de sensoriamento por Wi‑Fi baseada
-em *Channel State Information* (CSI). O projeto reúne firmware para ESP32,
-backend em Rust, dashboard web, inferência ONNX e integração com Home
-Assistant.
+**AetherSense** is an open-source, camera-free **Wi-Fi Channel State Information (CSI)** spatial sensing and smart-home automation platform. Built on low-cost ESP32 nodes, a high-performance Rust server, a web dashboard, optional ONNX inference, and Home Assistant integration, it delivers **geolocalized presence detection, movement tracking, experimental vital trends, and local IR/relay automation** using your existing Wi-Fi network.
 
-> O sistema é um protótipo de pesquisa. Localização e sinais vitais são
-> experimentais e não devem ser usados para diagnóstico, segurança ou decisões
-> críticas.
+> **Scientific Transparency:** AetherSense originated as an academic undergraduate thesis (*TCC*) prototype for local, camera-free Wi-Fi spatial sensing and smart-home automation. Location and vital-sign estimates are experimental and must not be used for medical diagnosis, life-safety, or mission-critical decisions.
 
 <p align="center">
-  <img src="docs/images/aethersense_showcase.gif" alt="AetherSense em Funcionamento - Showcase das Interfaces" width="100%">
-</p>
-
-## Demonstração do Sistema em Operação
-
-### 1. Visão Geral e Rastreamento em Tempo Real
-
-O modo operacional (*Dashboard Cliente*) apresenta a planta baixa interativa com a localização estimada em tempo real, mapa de calor de presença, contagem de ocupação e zonas delimitadas (ex.: box de chuveiro, áreas ativas):
-
-<p align="center">
-  <img src="docs/images/dashboard_cliente.png" alt="AetherSense - Dashboard Cliente com Rastreamento em Tempo Real" width="100%">
-</p>
-
-- **Rastreamento espacial**: cálculo contínuo de coordenadas \((x, y)\) com filtro EWMA;
-- **Detecção de ocupação**: contagem de pessoas via classificação ONNX e heurísticas estatísticas;
-- **Zonas configuráveis**: definição de polígonos e gatilhos de automação residencial.
-
-### 2. Processamento Digital de Sinais (DSP) & Diagnóstico de RF
-
-O modo de engenharia (*Dashboard Debug*) expõe o pipeline analítico de radiofrequência em tempo real, permitindo inspecionar o comportamento físico do canal sem fio:
-
-<p align="center">
-  <img src="docs/images/dashboard_debug.png" alt="AetherSense - Dashboard Debug de Engenharia e Pipeline DSP" width="100%">
-</p>
-
-- **Heatmap de Subportadoras**: matriz tempo \(\times\) subportadora da atenuação de amplitude;
-- **Espectrograma STFT Doppler**: detecção de velocidade e discriminação de micro-movimentos dinâmicos;
-- **Desenrolamento de Fase**: sanitização de erro residual de sincronismo de fase e amostragem;
-- **Perfil de Atraso de Potência (PDP)**: estimativa do espalhamento temporal por multitrajeto via IFFT.
-
-### 3. Topologia de Hardware & Calibração
-
-O sistema monitora dinamicamente a malha de dispositivos receptores e permite calibração de ruído estático sem necessidade de coleta de dados humanos locais:
-
-<p align="center">
-  <img src="docs/images/card_hardware_hud.png" alt="AetherSense - Telemetria e HUD de Nós ESP32" width="100%">
-</p>
-
-<p align="center">
-  <img src="docs/images/dashboard_calibracao.png" alt="AetherSense - Calibração de Sala Vazia e Validação Espacial" width="100%">
-</p>
-
-- **Telemetria de nós**: monitoramento em tempo real de taxa de amostragem (\(\sim 10\text{ Hz}\)), RSSI e latência por nó receptor (ESP32-WROOM-32 e ESP32-C5);
-- **Calibração de Sala Vazia (*Empty Room*)**: subtração de fundo para isolar variações do ambiente e mitigar efeitos de mobília e reflexões estáticas.
-
-### 4. Fundamentos Físicos & Extração de CSI
-
-O sensoriamento passivo do AetherSense utiliza a estrutura multiportadora do padrão IEEE 802.11 (OFDM). Cada quadro recebido carrega uma matriz de resposta em frequência do canal, sensível às perturbações causadas pelo corpo humano:
-
-<p align="center">
-  <img src="docs/images/infografico_ofdm_csi.png" alt="AetherSense - Infográfico OFDM e Extração de CSI no ESP32" width="85%">
+  <img src="docs/images/aethersense_showcase.gif" alt="AetherSense Live Showcase" width="100%">
 </p>
 
 ---
 
-## Componentes
+## Why AetherSense? Cost & Efficiency Comparison (USD `$`)
 
-| Diretório | Conteúdo |
-| --- | --- |
-| `firmware-rust/` | Firmware ativo para ESP32-WROOM-32 e ESP32-C5 |
-| `aethersense-server/` | API, ingestão UDP, processamento CSI e inferência |
-| `frontend/` | Dashboard React + TypeScript |
-| `ml/` | Treinamento, avaliação e exportação ONNX |
-| `homeassistant/` | Pacote e add-on para Home Assistant |
-| `esp_realtime_plot/` | Ferramentas Python para inspeção de CSI |
-| `docs/` | Arquitetura e guias avançados |
+| Solution | Technology | Est. Price (USD) | Static Presence (Still/Sleeping) | Multi-Room / Through-Wall | Built-in IR / Relay | Camera-Free Privacy | 100% Local (No Cloud) | Links |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **AetherSense (1-Node Wi-Fi CSI)** *(DIY BOM)* | Wi-Fi CSI (`ESP32-WROOM-32` / `ESP32-C5`) | **$5–$16** | Yes (CSCR + baseline) | Partial (1 room/link) | Yes (38 kHz IR + Relay) | Yes | Yes | [Espressif ESP32-C5](https://www.espressif.com/en/products/socs/esp32-c5) · [AliExpress ESP32](https://www.aliexpress.com/w/wholesale-esp32-wroom-32.html) |
+| **AetherSense (Multi-Node Kit)** *(DIY BOM)* | Dual-Band Wi-Fi CSI (`C5` 5 GHz + `WROOM` 2.4 GHz) | **$20–$30** | Yes | **Yes** (multi-zone fusion) | Yes (per node) | Yes | Yes | [Releases](https://github.com/joaosnet/aethersense/releases) · [AliExpress C5](https://www.aliexpress.com/w/wholesale-esp32-c5.html) |
+| **RuView (WiFi DensePose)** | Wi-Fi CSI (`3–6× ESP32-S3` Mesh) | **~$54+** | Yes | Yes (mesh) | No | Yes | Yes | [GitHub (ruvnet/RuView)](https://github.com/ruvnet/RuView) · [AliExpress ESP32-S3](https://www.aliexpress.com/w/wholesale-esp32-s3.html) |
+| **Tuya mmWave Presence (`ZY-M100`)** | 5.8 / 24 GHz mmWave Radar | **$18–$40** | **Yes** | No (line-of-sight / 1 room) | No | Yes | Zigbee: Yes · Wi-Fi: Cloud | [Blakadder](https://blakadder.com/) · [Zigbee2MQTT](https://www.zigbee2mqtt.io/) · [AliExpress](https://www.aliexpress.com/w/wholesale-tuya-zy-m100-mmwave.html) |
+| **Aqara Presence Sensor FP2** | 60 GHz mmWave Multi-Zone Radar | **$60–$83** | **Yes** (30 zones / 5 targets) | No (1 room per unit) | No | Yes | Yes (HomeKit / HA) | [Aqara Official](https://www.aqara.com/en/product/presence-sensor-fp2/) · [Amazon US](https://www.amazon.com/s?k=Aqara+FP2) |
+| **Generic Wi-Fi PIR Sensor** | Passive Infrared (PIR) | **$4–$16** | **No** (motion only) | No (optical cone) | No | Yes | Usually Cloud | [Amazon US](https://www.amazon.com/s?k=wifi+pir+motion+sensor) |
+| **Wi-Fi IP Camera (`Tapo C200`)** | Optical Video + AI | **$25–$35** | Yes (vision) | No (needs light/LOS) | No | **No** (video/audio) | Partial (RTSP / SD) | [TP-Link Official](https://www.tp-link.com/en/home-networking/cloud-camera/tapo-c200/) · [Amazon US](https://www.amazon.com/s?k=TP-Link+Tapo+C200) |
 
-## Requisitos
+> Prices reflect observed market ranges across AliExpress and Amazon (excluding optional shipping or local import taxes). DIY BOM reflects electronics components before enclosure and assembly. Single-node setups monitor room/zone presence and movement; dual-band multi-node kits improve cross-room zone fusion and spatial tracking.
 
-- Docker com Docker Compose, para executar backend, frontend e MQTT;
-- Git;
-- para desenvolver o firmware: Rust, ESP-IDF e `uv`;
-- uma placa compatível e uma rede Wi‑Fi, caso queira receber CSI real.
+---
 
-O dashboard e o modo de reprodução podem ser explorados sem gravar firmware.
+## Where to Buy or Build (USD `$`)
 
-## Início rápido
+### Option A — Ready-to-Use Pre-Flashed Kit *(Coming Soon)*
+- **AetherSense Plug-and-Play Kit**: *Pre-flashed hardware kits with protective enclosure, 5V power supply, and guided local setup — coming soon.* Follow [GitHub Releases](https://github.com/joaosnet/aethersense/releases) and [Discussions](https://github.com/joaosnet/aethersense/discussions) for launch updates.
 
-Clone o projeto:
+### Option B — DIY Bill of Materials (Build It Yourself)
+- **Primary 5 GHz Wi-Fi 6 Node (`ESP32-C5-DevKitC-1`)**: ~**$15 USD** — [Espressif](https://www.espressif.com/en/products/socs/esp32-c5) · [AliExpress](https://www.aliexpress.com/w/wholesale-esp32-c5-devkit.html)
+- **Secondary 2.4 GHz Node (`ESP32-WROOM-32`)**: ~**$3–$6 USD** (AliExpress) / **$6–$10 USD** (Amazon) — [AliExpress](https://www.aliexpress.com/w/wholesale-esp32-wroom-32.html) · [Amazon US](https://www.amazon.com/s?k=ESP32-WROOM-32+DevKit)
+- **Optional 38 kHz IR TX/RX Module**: ~**$1–$3 USD** — [AliExpress](https://www.aliexpress.com/w/wholesale-ir-transmitter-receiver-38khz-esp32.html)
+- **5V ≥ 1A USB-C Power Supply**: ~**$3–$5 USD**
+
+---
+
+## System Showcase
+
+### 1. Real-Time Operational Dashboard
+Displays the interactive floorplan with real-time spatial tracking, presence heatmaps, occupancy estimation, and configurable automation zones:
+
+<p align="center">
+  <img src="docs/images/dashboard_cliente.png" alt="AetherSense Operational Client Dashboard" width="100%">
+</p>
+
+- **Spatial tracking**: continuous $(x, y)$ estimation with EWMA smoothing and multi-node zone fusion;
+- **Occupancy & zones**: room/zone triggers ready for Home Assistant or direct local automation;
+- **Built-in accessories**: IR remote learning/blasting and relay switching per node.
+
+### 2. RF Signal Processing (DSP) & Engineering Diagnostics
+The engineering view exposes the live RF pipeline for inspecting physical channel behavior:
+
+<p align="center">
+  <img src="docs/images/dashboard_debug.png" alt="AetherSense Engineering Debug Dashboard" width="100%">
+</p>
+
+- **Subcarrier Amplitude Heatmap** · **Doppler STFT Spectrogram** · **Phase Sanitization** · **Power Delay Profile (PDP) via IFFT**.
+
+### 3. Hardware Topology & Empty-Room Calibration
+Live node telemetry (sample rate, RSSI, band, latency) and static-background calibration without collecting local human training datasets:
+
+<p align="center">
+  <img src="docs/images/card_hardware_hud.png" alt="AetherSense ESP32 Hardware Telemetry HUD" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/images/dashboard_calibracao.png" alt="AetherSense Empty-Room Calibration" width="100%">
+</p>
+
+### 4. Physical Foundations (OFDM & CSI)
+Passive sensing leverages IEEE 802.11 OFDM subcarriers to detect subtle body-induced multipath perturbations without cameras:
+
+<p align="center">
+  <img src="docs/images/infografico_ofdm_csi.png" alt="AetherSense OFDM and CSI Extraction Infographic" width="85%">
+</p>
+
+---
+
+## Components
+
+| Directory | Contents |
+| :--- | :--- |
+| `firmware-rust/` | Active ESP32-WROOM-32, ESP32-C5, and ESP32-C6 firmware |
+| `aethersense-server/` | Rust API, UDP CSI ingest, DSP processing, ONNX inference, and MQTT publisher |
+| `frontend/` | React + TypeScript web dashboard |
+| `ml/` | Public-dataset training, evaluation, and ONNX export pipeline |
+| `homeassistant/` | Home Assistant package and add-on definitions |
+| `esp_realtime_plot/` | Python tools for live serial CSI inspection |
+| `docs/` | Architecture and advanced integration guides |
+
+---
+
+## Quick Start
+
+Clone the repository and create your local config:
 
 ```bash
 git clone https://github.com/joaosnet/aethersense.git
 cd aethersense
+cp aethersense-server/aethersense_config.example.json aethersense-server/aethersense_config.json
 ```
 
-Crie a configuração local:
+Start the stack with credentials passed via environment variables (never commit secrets):
 
 ```bash
-cp aethersense-server/aethersense_config.example.json \
-   aethersense-server/aethersense_config.json
-```
-
-No PowerShell:
-
-```powershell
-Copy-Item aethersense-server/aethersense_config.example.json `
-  aethersense-server/aethersense_config.json
-```
-
-Suba os serviços:
-
-```bash
+export AETHERSENSE_API_TOKEN="change-this-secret"
+export AETHERSENSE_MQTT_USERNAME="user"
+export AETHERSENSE_MQTT_PASSWORD="password"
 docker compose up --build
 ```
 
-Acesse:
+- Dashboard: <http://localhost>
+- API & Healthcheck: <http://localhost:8000/api/health>
+- CSI UDP ingest: `5005/udp` · Broker discovery: `5151/udp`
 
-- dashboard: <http://localhost>;
-- API: <http://localhost:8000>;
-- saúde da API: <http://localhost:8000/api/health>;
-- entrada CSI: UDP `5005` no Linux ou o relay documentado para Docker Desktop.
-
-Credenciais devem ser fornecidas somente por variáveis de ambiente:
-
-```bash
-export AETHERSENSE_API_TOKEN="troque-este-valor"
-export AETHERSENSE_MQTT_USERNAME="usuario"
-export AETHERSENSE_MQTT_PASSWORD="senha"
-docker compose up --build
-```
-
-Não coloque credenciais em arquivos versionados.
-
-## Firmware
-
-O fluxo ativo está em `firmware-rust/`. Use sempre o script de build:
-
+### Flashing Firmware (Dev Flow)
 ```bash
 cd firmware-rust
 uv run build.py build
-uv run build.py flash --port SUA_PORTA
-uv run build.py run --port SUA_PORTA
+uv run build.py flash --port YOUR_PORT
 ```
+See [firmware-rust/FLASHING.md](firmware-rust/FLASHING.md) for board profiles, captive portal setup, and recovery.
 
-No primeiro boot, credenciais Wi‑Fi podem ser configuradas pelo portal cativo.
-Consulte [FLASHING.md](firmware-rust/FLASHING.md) para os perfis de hardware,
-recuperação e solução de problemas.
+---
 
-## Desenvolvimento
+## Documentation, Privacy & Security
 
-Backend:
+- [Documentation Map](docs/README.md) · [Architecture](docs/arquitetura-firmware-servidor.md) · [Home Assistant](docs/home-assistant-integration.md)
+- [Backend](aethersense-server/README.md) · [Frontend](frontend/README.md) · [ML Pipeline](ml/README.md)
+- [Security Policy](SECURITY.md)
 
-```bash
-cd aethersense-server
-cargo test --locked --lib
-cargo run
-```
-
-Os ensaios de integração `M1`–`M7` dependem de hardware ou de capturas
-fornecidas pelo próprio usuário. Capturas da instalação original não são
-publicadas.
-
-Frontend:
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-Pipeline de aprendizado de máquina:
-
-```bash
-cd ml
-uv sync
-uv run main.py --help
-```
-
-Datasets e artefatos de treinamento não são armazenados no repositório. Os
-scripts de `ml/` fazem o download das fontes públicas e exportam os modelos.
-
-## Documentação
-
-- [Visão da arquitetura](docs/arquitetura-firmware-servidor.md)
-- [Firmware e gravação](firmware-rust/README.md)
-- [Backend](aethersense-server/README.md)
-- [Frontend](frontend/README.md)
-- [Pipeline de ML](ml/README.md)
-- [Integração com Home Assistant](docs/home-assistant-integration.md)
-- [Mapa da documentação](docs/README.md)
-- [Política de segurança](SECURITY.md)
-
-## Privacidade e dados
-
-O repositório público não contém credenciais, configurações residenciais,
-coordenadas, identificadores de dispositivos nem capturas locais. Arquivos
-gerados em execução permanecem ignorados pelo Git. Ao compartilhar resultados,
-anonimize MACs, endereços, nomes de redes, coordenadas e dados de pessoas.
-
-## Estado do projeto
-
-O pipeline de aquisição, processamento, visualização, treinamento e integração
-está implementado. A validade física das estimativas depende do ambiente, da
-topologia e da calibração. Resultados de bases públicas não garantem
-generalização para uma instalação diferente.
-
-Contribuições são bem-vindas por *issues* e *pull requests*. Ao relatar falhas
-de segurança, siga [SECURITY.md](SECURITY.md) e não publique segredos em uma
-*issue*.
+The public repository excludes credentials, local home coordinates, device identifiers, and raw captures. Please report security vulnerabilities privately via [SECURITY.md](SECURITY.md).
